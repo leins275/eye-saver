@@ -3,6 +3,12 @@
 Every release of Eye Saver, newest first. Generated from conventional
 commits by git-cliff — edit the commit messages, not this file.
 
+## 0.6.0 — 2026-11-10
+
+### Features
+
+- **timer**: Hotkey and HUD tag for auto-start, project code on the HUD
+
 ## 0.5.0 — 2026-11-10
 
 ### Build & CI
