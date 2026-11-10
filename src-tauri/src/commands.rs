@@ -48,6 +48,19 @@ pub fn do_skip(app: &AppHandle) -> TimerState {
     timer_state
 }
 
+/// Drops the current phase and waits in `Work`; the timer task handles windows and stats.
+pub fn do_stop(app: &AppHandle) -> TimerState {
+    let state = app.state::<AppState>();
+    let (events, timer_state) = {
+        let mut timer = state.lock_timer();
+        let t = now();
+        (timer.stop(t), timer.state(t))
+    };
+    emit_state(app, EVENT_PHASE, &timer_state);
+    state.push_pending(events);
+    timer_state
+}
+
 pub fn do_reset_hud_position(app: &AppHandle) -> AppResult<()> {
     let state = app.state::<AppState>();
     let settings = {
@@ -101,6 +114,11 @@ pub fn resume(app: AppHandle) -> TimerState {
 #[tauri::command]
 pub fn skip(app: AppHandle) -> TimerState {
     do_skip(&app)
+}
+
+#[tauri::command]
+pub fn stop(app: AppHandle) -> TimerState {
+    do_stop(&app)
 }
 
 #[tauri::command]

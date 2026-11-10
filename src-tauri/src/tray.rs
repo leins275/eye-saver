@@ -13,6 +13,7 @@ const ID_SHOW: &str = "show";
 const ID_START: &str = "start";
 const ID_PAUSE: &str = "pause";
 const ID_SKIP: &str = "skip";
+const ID_STOP: &str = "stop";
 const ID_RESET_HUD: &str = "reset_hud";
 const ID_QUIT: &str = "quit";
 
@@ -21,13 +22,16 @@ pub fn build(app: &AppHandle) -> AppResult<()> {
     let start = MenuItem::with_id(app, ID_START, "Start / Resume", true, None::<&str>)?;
     let pause = MenuItem::with_id(app, ID_PAUSE, "Pause", true, None::<&str>)?;
     let skip = MenuItem::with_id(app, ID_SKIP, "Skip phase", true, None::<&str>)?;
+    let stop = MenuItem::with_id(app, ID_STOP, "Stop", true, None::<&str>)?;
     let reset = MenuItem::with_id(app, ID_RESET_HUD, "Reset HUD position", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, ID_QUIT, "Quit", true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
     let menu = Menu::with_items(
         app,
-        &[&show, &sep1, &start, &pause, &skip, &reset, &sep2, &quit],
+        &[
+            &show, &sep1, &start, &pause, &skip, &stop, &reset, &sep2, &quit,
+        ],
     )?;
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
@@ -54,6 +58,9 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
         }
         ID_SKIP => {
             commands::do_skip(app);
+        }
+        ID_STOP => {
+            commands::do_stop(app);
         }
         ID_RESET_HUD => {
             if let Err(e) = commands::do_reset_hud_position(app) {

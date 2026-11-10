@@ -228,6 +228,19 @@ impl Timer {
         ]
     }
 
+    /// Drops the current phase: records it as incomplete when any time was
+    /// spent, then waits, paused, in `Work` with the full focus duration.
+    pub fn stop(&mut self, now: u64) -> Vec<TimerEvent> {
+        let mut events = Vec::with_capacity(2);
+        if self.remaining_at(now) < self.total_secs {
+            events.push(TimerEvent::PhaseFinished(self.record(now, false)));
+        }
+        self.begin_phase(Phase::Work, now);
+        self.running = false;
+        events.push(TimerEvent::PhaseChanged(self.state(now)));
+        events
+    }
+
     /// Adds `secs` to the current phase and re-arms the warning.
     pub fn extend(&mut self, secs: u64) {
         self.total_secs += secs;
@@ -495,6 +508,60 @@ mod tests {
             }
             other => panic!("unexpected {other:?}"),
         }
+    }
+
+    #[test]
+    fn stop_records_incomplete_and_waits_in_work() {
+        let mut t = Timer::new(cfg(PresetId::Pomodoro));
+        t.start(T0);
+        ticks(&mut t, T0 + 1, T0 + 100);
+        let ev = t.stop(T0 + 100);
+        assert_eq!(ev.len(), 2);
+        match &ev[0] {
+            TimerEvent::PhaseFinished(r) => {
+                assert_eq!(r.kind, Phase::Work);
+                assert!(!r.completed);
+                assert_eq!(r.actual_secs, 100);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match &ev[1] {
+            TimerEvent::PhaseChanged(s) => {
+                assert_eq!(s.phase, Phase::Work);
+                assert!(!s.running);
+                assert_eq!(s.remaining_secs, 1500);
+                assert_eq!(s.total_secs, 1500);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        // Time passing changes nothing; a later start counts the full duration.
+        assert_eq!(t.state(T0 + 500).remaining_secs, 1500);
+        t.start(T0 + 500);
+        t.tick(T0 + 501);
+        assert_eq!(t.state(T0 + 501).remaining_secs, 1499);
+
+        // Stopping a break also records it and returns to a paused focus phase.
+        t.skip(T0 + 501);
+        ticks(&mut t, T0 + 502, T0 + 530);
+        let ev = t.stop(T0 + 530);
+        match &ev[0] {
+            TimerEvent::PhaseFinished(r) => {
+                assert_eq!(r.kind, Phase::Break);
+                assert!(!r.completed);
+                assert_eq!(r.actual_secs, 29);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        assert_eq!(t.phase(), Phase::Work);
+        assert!(!t.is_running());
+    }
+
+    #[test]
+    fn stop_without_progress_records_nothing() {
+        let mut t = Timer::new(cfg(PresetId::Pomodoro));
+        let ev = t.stop(T0);
+        assert_eq!(ev.len(), 1);
+        assert!(matches!(&ev[0], TimerEvent::PhaseChanged(s) if !s.running));
     }
 
     #[test]

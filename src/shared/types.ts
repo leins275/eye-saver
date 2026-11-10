@@ -141,6 +141,7 @@ export const COMMANDS = {
   pause: "pause",
   resume: "resume",
   skip: "skip",
+  stop: "stop", // drop the current phase; wait paused in work with the full duration
   extendBreak: "extend_break", // { secs: number }
   setPreset: "set_preset", // { preset: PresetId }
   setLabel: "set_label", // { label: string | null } caption for the current/next focus session

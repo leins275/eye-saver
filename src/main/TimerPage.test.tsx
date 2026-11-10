@@ -11,6 +11,7 @@ vi.mock("../shared/api", () => ({
   pause: vi.fn(() => Promise.resolve()),
   resume: vi.fn(() => Promise.resolve()),
   skip: vi.fn(() => Promise.resolve()),
+  stop: vi.fn(() => Promise.resolve()),
   setPreset: vi.fn(() => Promise.resolve()),
   setLabel: vi.fn(),
 }));
@@ -87,5 +88,22 @@ describe("TimerPage caption", () => {
   it("shows the current caption as a line in the hero", () => {
     arrange({ label: "CORE-discuss Q3 strategy-sync,strategy" });
     expect(screen.getByText("CORE · discuss Q3 strategy · sync, strategy")).toBeInTheDocument();
+  });
+});
+
+describe("TimerPage stop", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("Stop drops the running session", async () => {
+    arrange();
+    await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+    expect(api.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("Stop is disabled before the first start", () => {
+    arrange({ running: false, remaining_secs: 1500 });
+    expect(screen.getByRole("button", { name: "Stop" })).toBeDisabled();
   });
 });

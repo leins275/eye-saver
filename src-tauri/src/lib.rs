@@ -41,6 +41,7 @@ pub fn run() {
             commands::pause,
             commands::resume,
             commands::skip,
+            commands::stop,
             commands::extend_break,
             commands::set_preset,
             commands::set_label,

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
-import { pause, resume, setLabel, setPreset, skip, start } from "../shared/api";
+import { pause, resume, setLabel, setPreset, skip, start, stop } from "../shared/api";
 import { formatClock, presetLabel, presetMinutes } from "../shared/format";
 import { parseLabel } from "../shared/label";
 import { PRESETS, type PresetId, type TimerState } from "../shared/types";
@@ -139,6 +139,15 @@ export function TimerPage({ timer, store }: { timer: TimerState | null; store: S
             title="Skip the current phase"
           >
             {timer?.phase === "break" ? "Skip to focus" : "Skip to break"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-lg"
+            onClick={() => void run(stop)}
+            disabled={busy || timer === null || notStarted}
+            title="Drop the current session and reset the timer"
+          >
+            Stop
           </button>
         </div>
       </section>

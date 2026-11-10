@@ -43,6 +43,11 @@ export function skip(): Promise<void> {
   return invoke(COMMANDS.skip);
 }
 
+/** Drops the current phase (recorded as incomplete) and waits, paused, in focus. */
+export function stop(): Promise<void> {
+  return invoke(COMMANDS.stop);
+}
+
 export function extendBreak(secs: number): Promise<void> {
   return invoke(COMMANDS.extendBreak, { secs });
 }
