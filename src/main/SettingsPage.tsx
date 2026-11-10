@@ -165,6 +165,18 @@ export function SettingsPage({ store }: { store: Store }) {
             onChange={(v) => update({ warning_secs: v })}
           />
         </Row>
+        <Row
+          label="Auto-start focus after a break"
+          hint="Off: when the break ends the timer waits, paused, until you press Start."
+          htmlFor="auto-start-work"
+        >
+          <Toggle
+            id="auto-start-work"
+            label="Auto-start focus after a break"
+            checked={s.auto_start_work}
+            onChange={(v) => update({ auto_start_work: v })}
+          />
+        </Row>
       </Section>
 
       <Section title="Break veil">

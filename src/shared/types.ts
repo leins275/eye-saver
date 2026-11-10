@@ -79,6 +79,8 @@ export interface Settings {
   custom_break_min: number;
   /** Seconds before a phase change at which the sound + flash fire. */
   warning_secs: number;
+  /** Start the next focus phase automatically when a break ends. */
+  auto_start_work: boolean;
   /** Caption under the break countdown, e.g. "20-20-20: look 20 feet away for 20 seconds". */
   caption: string;
   /** 0..1 darkness of the veil. */

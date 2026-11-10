@@ -10,6 +10,7 @@ export const DEFAULT_SETTINGS: Settings = {
   custom_work_min: 50,
   custom_break_min: 10,
   warning_secs: 5,
+  auto_start_work: true,
   caption: "20-20-20: look at something 20 feet away for 20 seconds",
   veil_opacity: 0.92,
   veil_blocks_input: true,

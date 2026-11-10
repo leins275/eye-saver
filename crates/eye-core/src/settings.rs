@@ -58,6 +58,8 @@ pub struct Settings {
     pub custom_work_min: u64,
     pub custom_break_min: u64,
     pub warning_secs: u64,
+    /// Start focus automatically when a break ends.
+    pub auto_start_work: bool,
     pub caption: String,
     pub veil_opacity: f64,
     pub veil_blocks_input: bool,
@@ -77,6 +79,7 @@ impl Default for Settings {
             custom_work_min: 50,
             custom_break_min: 10,
             warning_secs: 5,
+            auto_start_work: true,
             caption: "20-20-20: look at something 20 feet away for 20 seconds".to_string(),
             veil_opacity: 0.85,
             veil_blocks_input: true,
@@ -109,6 +112,7 @@ impl Settings {
             custom_work_min: self.custom_work_min,
             custom_break_min: self.custom_break_min,
             warning_secs: self.warning_secs,
+            auto_start_work: self.auto_start_work,
         }
     }
 }
@@ -200,7 +204,7 @@ mod tests {
         assert_eq!(json["sound"]["to_break_path"], serde_json::Value::Null);
         assert_eq!(json["toggle_window_hotkey"], "Ctrl+Alt+E");
         let keys: Vec<&String> = json.as_object().unwrap().keys().collect();
-        assert_eq!(keys.len(), 14);
+        assert_eq!(keys.len(), 15);
     }
 
     #[test]

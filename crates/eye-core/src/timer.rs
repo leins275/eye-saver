@@ -92,6 +92,9 @@ pub struct TimerConfig {
     pub custom_work_min: u64,
     pub custom_break_min: u64,
     pub warning_secs: u64,
+    /// Start the next focus phase automatically when a break ends; when
+    /// false the timer waits, paused, with the full focus duration.
+    pub auto_start_work: bool,
 }
 
 impl TimerConfig {
@@ -265,6 +268,9 @@ impl Timer {
         if remaining == 0 {
             let record = self.record(now, true);
             self.begin_phase(self.phase.next(), now);
+            if self.phase == Phase::Work && !self.cfg.auto_start_work {
+                self.running = false;
+            }
             return vec![
                 TimerEvent::PhaseFinished(record),
                 TimerEvent::PhaseChanged(self.state(now)),
@@ -334,6 +340,7 @@ mod tests {
             custom_work_min: 50,
             custom_break_min: 10,
             warning_secs: 5,
+            auto_start_work: true,
         }
     }
 
@@ -681,5 +688,28 @@ mod tests {
         assert_eq!(t.state(T0).label, None);
         let unlabelled = finished(&t.skip(T0)).clone();
         assert_eq!(unlabelled.label, None);
+    }
+
+    #[test]
+    fn break_end_waits_when_auto_start_is_off() {
+        let mut c = cfg(PresetId::Pomodoro);
+        c.auto_start_work = false;
+        let mut t = Timer::new(c);
+        t.start(T0);
+        t.skip(T0 + 1); // into the break
+        let brk = c.phase_secs(Phase::Break);
+        let mut events = Vec::new();
+        for now in T0 + 2..=T0 + 1 + brk {
+            events = t.tick(now);
+        }
+        assert!(matches!(
+            &events[1],
+            TimerEvent::PhaseChanged(s) if s.phase == Phase::Work && !s.running
+        ));
+        let s = t.state(T0 + 1 + brk + 100);
+        assert_eq!(s.remaining_secs, c.phase_secs(Phase::Work));
+        assert!(!s.running);
+        t.resume(T0 + 1 + brk + 100);
+        assert!(t.state(T0 + 1 + brk + 101).running);
     }
 }
