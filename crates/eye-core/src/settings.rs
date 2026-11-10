@@ -86,7 +86,7 @@ impl Default for Settings {
             allow_skip_break: true,
             hud: HudSettings::default(),
             toggle_window_hotkey: "Ctrl+Alt+E".to_string(),
-            move_hud_hotkey: "Ctrl+Alt+M".to_string(),
+            move_hud_hotkey: "Ctrl+Alt+Z".to_string(),
             sound: SoundSettings::default(),
             autostart: false,
             start_on_launch: true,
@@ -188,7 +188,7 @@ mod tests {
         assert!(s.allow_skip_break);
         assert_eq!(s.hud, HudSettings::default());
         assert_eq!(s.toggle_window_hotkey, "Ctrl+Alt+E");
-        assert_eq!(s.move_hud_hotkey, "Ctrl+Alt+M");
+        assert_eq!(s.move_hud_hotkey, "Ctrl+Alt+Z");
         assert!(s.sound.enabled);
         assert_eq!(s.sound.volume, 0.7);
         assert!(!s.autostart);

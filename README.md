@@ -21,7 +21,7 @@ away for 20 seconds. Eye Saver turns that into something you cannot miss.
   hour), `90/30` (the longest sustained focus block research supports), or a
   custom pair of your own.
 - **HUD**: a transparent, click-through, always-on-top `MM:SS` countdown, like
-  an FPS counter. Hold `Ctrl+Alt+M` and drag it wherever you like; the position
+  an FPS counter. Hold `Ctrl+Alt+Z` and drag it wherever you like; the position
   is remembered.
 - **Veil**: during a break every monitor is dimmed and shows a large countdown
   with a caption of your choice ("20-20-20", "stretch", ...). It blocks input
