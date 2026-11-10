@@ -3,6 +3,18 @@
 Every release of Eye Saver, newest first. Generated from conventional
 commits by git-cliff — edit the commit messages, not this file.
 
+## 0.2.0 — 2026-11-10
+
+### Bug fixes
+
+- **build**: Drop unused Manager import in autostart (Windows clippy)
+- **autostart**: Quote the exe path in the Windows Run registry entry
+
+### Features
+
+- **landing**: Astro landing page deployed to GitHub Pages
+- **stats**: Focus-session captions with project, title and tags
+
 ## 0.1.0 — 2026-11-10
 
 ### Bug fixes

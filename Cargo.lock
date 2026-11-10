@@ -882,7 +882,7 @@ dependencies = [
 
 [[package]]
 name = "eye-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -893,7 +893,7 @@ dependencies = [
 
 [[package]]
 name = "eye-saver"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "auto-launch",
  "env_logger",
