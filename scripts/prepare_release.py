@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Compute the next version from conventional commits and write it everywhere.
 
 The seam between the two halves of releasing:
