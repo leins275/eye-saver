@@ -3,6 +3,16 @@
 Every release of Eye Saver, newest first. Generated from conventional
 commits by git-cliff — edit the commit messages, not this file.
 
+## 0.4.0 — 2026-11-10
+
+### Bug fixes
+
+- **settings**: Let clicks reach the toggle switches
+
+### Features
+
+- **timer**: Stop action to drop the current session
+
 ## 0.3.0 — 2026-11-10
 
 ### Build & CI
