@@ -6,3 +6,4 @@ src-tauri/icons
 package-lock.json
 CHANGELOG.md
 SPEC.md
+landing/.astro

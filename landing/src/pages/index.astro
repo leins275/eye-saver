@@ -1,0 +1,852 @@
+---
+// The one page. Tokens mirror the app's src/shared/styles.css ("calm
+// instrument": deep navy, one teal accent, tabular digits); content edits
+// happen here directly.
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const github = "https://github.com/leins275/eye-saver";
+const releases = `${github}/releases/latest`;
+const site = "https://leins275.github.io";
+const pageUrl = `${site}${base}/`;
+const ogImage = `${site}${base}/logo.svg`;
+const title = "Eye Saver — rest your eyes without leaving your flow";
+const description =
+  "A small desktop app that enforces 20-20-20 eye breaks: a tiny always-on-top countdown while you work, a full-screen veil on every monitor when the break starts. Open source, built with Tauri.";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b1220" />
+    <link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+    <link rel="canonical" href={pageUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Eye Saver" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={pageUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:alt" content="Eye Saver icon: a teal eye on deep navy" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <a class="brand" href={`${base}/`}>
+          <img src={`${base}/logo.svg`} alt="" width="28" height="28" />
+          <span>Eye Saver</span>
+        </a>
+        <nav class="topnav" aria-label="Page">
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+          <a href={github}>GitHub</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero">
+          <p class="kicker">A desktop tool · 20-20-20 · Open source</p>
+          <h1>Rest your eyes without leaving your flow.</h1>
+          <p class="lede">
+            Eye Saver keeps a tiny countdown in the corner of your screen while you work, then
+            dims every monitor for a short break you cannot scroll past. Pick a rhythm, forget
+            about it, and let your eyes catch up.
+          </p>
+          <div class="cta-row">
+            <a href={releases} class="btn btn-primary">Download for Windows</a>
+            <a href={github} class="btn btn-ghost">View on GitHub</a>
+          </div>
+          <p class="fineprint">
+            Also available: <a href={releases}>macOS (.dmg)</a> ·
+            <a href={releases}>Linux (.AppImage)</a> · free, MIT licensed
+          </p>
+        </section>
+
+        <!--
+          TODO: replace the CSS mock below with a real screenshot
+          (public/screenshot.png + <img>) once the first release ships.
+        -->
+        <section class="shot" aria-labelledby="shot-heading">
+          <h2 id="shot-heading" class="visually-hidden">What it looks like</h2>
+          <div class="mock" role="img" aria-label="Left: a small HUD pill reading 24:59 focus floating over a desktop. Right: a dimmed screen with a large 00:19 countdown and the caption 20-20-20: look 20 feet away for 20 seconds.">
+            <div class="mock-desk" aria-hidden="true">
+              <div class="mock-window">
+                <div class="mock-titlebar">
+                  <span></span><span></span><span></span>
+                </div>
+                <div class="mock-lines">
+                  <i style="width: 62%"></i><i style="width: 84%"></i><i style="width: 48%"></i>
+                  <i style="width: 76%"></i><i style="width: 36%"></i><i style="width: 70%"></i>
+                </div>
+              </div>
+              <div class="hud">
+                <span class="hud-dot"></span>
+                <span class="hud-clock">24:59</span>
+                <span class="hud-phase">focus</span>
+              </div>
+            </div>
+            <div class="mock-veil" aria-hidden="true">
+              <p class="veil-kicker">Break</p>
+              <p class="veil-clock">00:19</p>
+              <div class="veil-progress"><div class="veil-progress-fill"></div></div>
+              <p class="veil-caption">20-20-20: look 20 feet away for 20 seconds</p>
+              <div class="veil-actions">
+                <span class="veil-btn">+1 min</span>
+                <span class="veil-btn veil-btn-ghost">Skip</span>
+              </div>
+            </div>
+          </div>
+          <p class="shot-caption">
+            Left: the HUD during a focus block. Right: the veil on every monitor during a break.
+          </p>
+        </section>
+
+        <section id="how" class="how">
+          <h2>How it works</h2>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-no">01</div>
+              <h3 class="step-title">Pick a rhythm</h3>
+              <p>
+                <span class="preset">25/5</span>
+                <span class="preset">45/15</span>
+                <span class="preset">90/30</span>
+                <span class="preset">custom</span>
+              </p>
+              <p>
+                Pomodoro, the academic hour, the longest focus block research supports, or your own
+                pair of minutes.
+              </p>
+            </li>
+            <li class="step">
+              <div class="step-no">02</div>
+              <h3 class="step-title">Work with the HUD</h3>
+              <p>
+                A transparent, click-through <code>MM:SS</code> countdown sits above your windows
+                like an FPS counter. Five seconds before the break: a short chime and a flash.
+              </p>
+            </li>
+            <li class="step">
+              <div class="step-no">03</div>
+              <h3 class="step-title">Take the break</h3>
+              <p>
+                Every monitor dims behind a full-screen veil with a large countdown and the 20-20-20
+                caption. Input is blocked by default; Skip and +1 min are there if you need them.
+              </p>
+            </li>
+          </ol>
+        </section>
+
+        <section id="features" class="features">
+          <h2>Small on purpose</h2>
+          <p class="features-lede">
+            One job, done well. Everything below ships in one small app with no account, no cloud
+            and no telemetry.
+          </p>
+          <ul class="feature-grid">
+            <li class="feature">
+              <h3>A HUD that stays out of the way</h3>
+              <p>
+                Always on top, click-through, remembers its place. Hold
+                <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> to drag it wherever you like.
+              </p>
+            </li>
+            <li class="feature">
+              <h3>A veil on every monitor</h3>
+              <p>
+                Breaks cover all screens at once, so there is no second display to keep working on.
+              </p>
+            </li>
+            <li class="feature">
+              <h3>Statistics with streaks</h3>
+              <p>
+                Completed blocks and breaks for today and the last 7 days, your current streak, and
+                focus time per project from captions like <code>Core - fix veil - bug</code>.
+              </p>
+            </li>
+            <li class="feature">
+              <h3>Tray and hotkeys</h3>
+              <p>
+                Show/Hide, Start/Pause, Skip and Quit from the tray.
+                <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>E</kbd> toggles the window; both shortcuts
+                are configurable.
+              </p>
+            </li>
+            <li class="feature">
+              <h3>Signed auto-updates</h3>
+              <p>
+                Checks GitHub Releases at launch and offers the update. Nothing installs without a
+                click.
+              </p>
+            </li>
+            <li class="feature">
+              <h3>Open source, MIT</h3>
+              <p>
+                Rust core with a unit-tested timer, Tauri shell, React front end. Read it, fork it,
+                fix it.
+              </p>
+            </li>
+            <li class="feature">
+              <h3>Windows first, builds for all three</h3>
+              <p>
+                Windows is the primary platform. macOS (Apple Silicon) and Linux (AppImage) builds
+                come out of the same release pipeline.
+              </p>
+            </li>
+          </ul>
+        </section>
+
+        <section class="closer">
+          <h2>Your eyes will thank you in twenty minutes.</h2>
+          <div class="cta-row">
+            <a href={releases} class="btn btn-primary">Download for Windows</a>
+            <a href={github} class="btn btn-ghost">Star on GitHub</a>
+          </div>
+          <p class="fineprint">
+            <a href={releases}>macOS (.dmg)</a> · <a href={releases}>Linux (.AppImage)</a>
+          </p>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>MIT license</span>
+        <a href={github}>leins275/eye-saver</a>
+        <span>Built with <a href="https://v2.tauri.app">Tauri</a></span>
+      </footer>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  /* Tokens mirror the app's src/shared/styles.css. */
+  :root {
+    color-scheme: dark;
+
+    --bg: #0b1220;
+    --bg-2: #101a2c;
+    --bg-3: #16223a;
+    --fg: #e8eef6;
+    --fg-strong: #ffffff;
+    --muted: #a3b1c6;
+    --muted-2: #7383a0;
+
+    --accent: #7fd1c8;
+    --accent-strong: #a6e8e0;
+    --accent-ink: #06201d;
+    --accent-dim: rgba(127, 209, 200, 0.14);
+    --accent-glow: rgba(127, 209, 200, 0.35);
+
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.16);
+
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-pill: 999px;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+    --font-ui:
+      "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Cascadia Mono", "JetBrains Mono", "SF Mono", Consolas, Menlo, monospace;
+
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --dur: 160ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--fg-strong);
+    letter-spacing: -0.01em;
+  }
+
+  a {
+    color: var(--accent);
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    color: var(--accent-strong);
+  }
+  img {
+    display: block;
+    max-width: 100%;
+  }
+  code,
+  kbd {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  kbd {
+    display: inline-block;
+    padding: 0 6px;
+    border: 1px solid var(--line-strong);
+    border-bottom-width: 2px;
+    border-radius: var(--r-sm);
+    background: var(--bg-2);
+    color: var(--fg);
+    line-height: 1.5;
+  }
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: var(--accent-glow);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.2;
+    padding: 12px 20px;
+    border-radius: var(--r-md);
+    border: 1px solid transparent;
+    transition:
+      background var(--dur) var(--ease),
+      color var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      transform var(--dur) var(--ease);
+  }
+  .btn-primary {
+    color: var(--accent-ink);
+    background: var(--accent);
+    box-shadow: var(--shadow-1);
+  }
+  .btn-primary:hover {
+    color: var(--accent-ink);
+    background: var(--accent-strong);
+  }
+  .btn-primary:active {
+    transform: translateY(1px);
+  }
+  .btn-ghost {
+    color: var(--fg);
+    border-color: var(--line-strong);
+  }
+  .btn-ghost:hover {
+    color: var(--fg-strong);
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+
+<style>
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ---- top bar ---------------------------------------------------------- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--fg-strong);
+    text-decoration: none;
+  }
+  .brand img {
+    border-radius: 7px;
+  }
+  .topnav {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    font-size: 14px;
+  }
+  .topnav a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .topnav a:hover {
+    color: var(--fg-strong);
+  }
+
+  /* ---- hero ------------------------------------------------------------- */
+  .hero {
+    padding: 96px 0 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .kicker {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .hero h1 {
+    font-weight: 600;
+    font-size: clamp(38px, 6vw, 60px);
+    line-height: 1.08;
+    margin: 0;
+    max-width: 16ch;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: 19px;
+    max-width: 54ch;
+    margin: 0;
+    color: var(--muted);
+  }
+  .cta-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .fineprint {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--muted-2);
+  }
+  .fineprint a {
+    color: var(--muted);
+  }
+  .fineprint a:hover {
+    color: var(--fg-strong);
+  }
+
+  /* ---- mock (stands in for a screenshot) -------------------------------- */
+  .shot {
+    padding: 0 0 72px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mock {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .mock-desk,
+  .mock-veil {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--line-strong);
+    overflow: hidden;
+    box-shadow: var(--shadow-2);
+  }
+  .mock-desk {
+    background:
+      radial-gradient(120% 90% at 20% 0%, #25406a 0%, transparent 60%),
+      linear-gradient(160deg, #1b2e4d, #0f1a2e);
+    padding: 11% 9% 0;
+  }
+  .mock-window {
+    height: 100%;
+    border-radius: var(--r-md) var(--r-md) 0 0;
+    background: var(--bg-2);
+    border: 1px solid var(--line-strong);
+    border-bottom: 0;
+  }
+  .mock-titlebar {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mock-titlebar span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--bg-3);
+    border: 1px solid var(--line-strong);
+  }
+  .mock-lines {
+    display: grid;
+    gap: 10px;
+    padding: 18px 16px;
+  }
+  .mock-lines i {
+    display: block;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--bg-3);
+  }
+
+  .hud {
+    position: absolute;
+    top: 6%;
+    right: 5%;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px 0 12px;
+    border-radius: var(--r-pill);
+    background: rgba(11, 18, 32, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 6px 18px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
+  }
+  .hud-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: breathe 2.4s ease-in-out infinite;
+  }
+  .hud-clock {
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--fg-strong);
+    font-variant-numeric: tabular-nums;
+  }
+  .hud-phase {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .mock-veil {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    padding: 20px;
+    background: rgba(8, 14, 26, 0.96);
+  }
+  .mock-veil p {
+    margin: 0;
+  }
+  .veil-kicker {
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .veil-clock {
+    font-size: clamp(56px, 9vw, 96px);
+    font-weight: 300;
+    line-height: 1;
+    color: var(--fg-strong);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
+  }
+  .veil-progress {
+    flex: none;
+    width: 55%;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+  }
+  .veil-progress-fill {
+    height: 100%;
+    width: 68%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+    animation: drain 20s linear infinite;
+  }
+  .veil-caption {
+    font-size: 14px;
+    color: var(--fg);
+    opacity: 0.85;
+    max-width: 30ch;
+    line-height: 1.4;
+  }
+  .veil-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .veil-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--r-sm);
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .veil-btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line-strong);
+  }
+  .shot-caption {
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--muted-2);
+    margin: 16px 0 0;
+  }
+
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+  @keyframes drain {
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0%;
+    }
+  }
+
+  /* ---- how it works ----------------------------------------------------- */
+  .how {
+    padding: 72px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .how h2,
+  .features h2 {
+    font-weight: 600;
+    font-size: 32px;
+    margin: 0 0 40px;
+  }
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .step {
+    padding: 0 28px;
+    border-right: 1px solid var(--line);
+  }
+  .step:first-child {
+    padding-left: 0;
+  }
+  .step:last-child {
+    padding-right: 0;
+    border-right: 0;
+  }
+  .step-no {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+  }
+  .step-title {
+    font-weight: 600;
+    font-size: 19px;
+    margin: 10px 0 8px;
+  }
+  .step p {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .preset {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    padding: 2px 8px;
+    margin: 0 4px 6px 0;
+    border-radius: var(--r-pill);
+    background: var(--accent-dim);
+    color: var(--accent-strong);
+    border: 1px solid rgba(127, 209, 200, 0.3);
+  }
+
+  /* ---- features --------------------------------------------------------- */
+  .features {
+    padding: 72px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .features h2 {
+    margin-bottom: 12px;
+  }
+  .features-lede {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 56ch;
+    margin: 0 0 40px;
+  }
+  .feature-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .feature {
+    padding: 20px 22px;
+    border-radius: var(--r-lg);
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+  }
+  .feature:first-child {
+    grid-column: 1 / -1;
+  }
+  .feature h3 {
+    font-weight: 600;
+    font-size: 17px;
+    margin: 0 0 6px;
+  }
+  .feature p {
+    margin: 0;
+    font-size: 15px;
+    color: var(--muted);
+  }
+
+  /* ---- closer / footer -------------------------------------------------- */
+  .closer {
+    padding: 88px 0 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+  }
+  .closer h2 {
+    font-weight: 600;
+    font-size: clamp(28px, 4.5vw, 38px);
+    margin: 0;
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+  .closer .cta-row {
+    justify-content: center;
+  }
+
+  .footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 24px;
+    padding: 24px 0 40px;
+    border-top: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--muted-2);
+  }
+  .footer a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .footer a:hover {
+    color: var(--fg-strong);
+    text-decoration: underline;
+  }
+
+  /* ---- narrow screens --------------------------------------------------- */
+  @media (max-width: 760px) {
+    .page {
+      padding: 0 20px;
+    }
+    .topnav {
+      gap: 14px;
+    }
+    .hero {
+      padding: 56px 0 48px;
+    }
+    .lede {
+      font-size: 17px;
+    }
+    .mock {
+      grid-template-columns: 1fr;
+    }
+    .steps {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .step {
+      padding: 0;
+      border-right: 0;
+    }
+    .feature-grid {
+      grid-template-columns: 1fr;
+    }
+    .how,
+    .features {
+      padding: 56px 0;
+    }
+    .closer {
+      padding: 64px 0 56px;
+    }
+  }
+  @media (max-width: 420px) {
+    .topnav a:first-child {
+      display: none;
+    }
+  }
+</style>

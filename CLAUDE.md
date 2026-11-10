@@ -14,14 +14,15 @@ requirements.
 
 ## Layout
 
-| Path                 | What                                                                                                                 | Toolchain |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------- | --------- |
-| `crates/eye-core/`   | Pure logic: timer state machine (Clock/EventSink traits), settings, stats aggregation. Unit tests live here.         | cargo     |
-| `src-tauri/`         | Tauri shell: windows (`main`, `hud`, `veil-<n>`), tray, shortcuts, commands, event sink. `capabilities/` per window. | cargo     |
-| `src/`               | Three Vite pages: `main/` (settings + stats), `hud/`, `veil/`; `shared/` (IPC types, api wrappers, styles).          | npm       |
-| `scripts/`           | `sync_version.py`, `prepare_release.py`; their pytest suite in `scripts/tests/`.                                     | `uv` only |
-| `.github/workflows/` | `ci.yml` (PR gate), `tag.yml` (main -> version tag), `release.yml` (tag -> bundles + GitHub Release).                | -         |
-| `docs/`              | `releasing.md`.                                                                                                      | -         |
+| Path                 | What                                                                                                                                    | Toolchain |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `crates/eye-core/`   | Pure logic: timer state machine (Clock/EventSink traits), settings, stats aggregation. Unit tests live here.                            | cargo     |
+| `src-tauri/`         | Tauri shell: windows (`main`, `hud`, `veil-<n>`), tray, shortcuts, commands, event sink. `capabilities/` per window.                    | cargo     |
+| `src/`               | Three Vite pages: `main/` (settings + stats), `hud/`, `veil/`; `shared/` (IPC types, api wrappers, styles).                             | npm       |
+| `scripts/`           | `sync_version.py`, `prepare_release.py`; their pytest suite in `scripts/tests/`.                                                        | `uv` only |
+| `landing/`           | Astro landing page for <https://leins275.github.io/eye-saver/>; deployed by `landing.yml`. CSS lives inline in `src/pages/index.astro`. | npm       |
+| `.github/workflows/` | `ci.yml` (PR gate), `tag.yml` (main -> version tag), `release.yml` (tag -> bundles + GitHub Release), `landing.yml` (Pages).            | -         |
+| `docs/`              | `releasing.md`.                                                                                                                         | -         |
 
 ## Commands
 

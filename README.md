@@ -39,7 +39,8 @@ away for 20 seconds. Eye Saver turns that into something you cannot miss.
 ## Install
 
 Download the latest build from
-[Releases](https://github.com/leins275/eye-saver/releases/latest).
+[Releases](https://github.com/leins275/eye-saver/releases/latest), or start at the
+project site: <https://leins275.github.io/eye-saver/>.
 
 ### Windows
 
