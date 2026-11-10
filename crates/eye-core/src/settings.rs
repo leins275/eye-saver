@@ -67,6 +67,8 @@ pub struct Settings {
     pub hud: HudSettings,
     pub toggle_window_hotkey: String,
     pub move_hud_hotkey: String,
+    /// Flips `auto_start_work` without opening the window.
+    pub toggle_auto_start_hotkey: String,
     pub sound: SoundSettings,
     pub autostart: bool,
     pub start_on_launch: bool,
@@ -87,6 +89,7 @@ impl Default for Settings {
             hud: HudSettings::default(),
             toggle_window_hotkey: "Ctrl+Alt+E".to_string(),
             move_hud_hotkey: "Ctrl+Alt+Z".to_string(),
+            toggle_auto_start_hotkey: "Ctrl+Alt+A".to_string(),
             sound: SoundSettings::default(),
             autostart: false,
             start_on_launch: true,
@@ -189,6 +192,8 @@ mod tests {
         assert_eq!(s.hud, HudSettings::default());
         assert_eq!(s.toggle_window_hotkey, "Ctrl+Alt+E");
         assert_eq!(s.move_hud_hotkey, "Ctrl+Alt+Z");
+        assert_eq!(s.toggle_auto_start_hotkey, "Ctrl+Alt+A");
+        assert!(s.auto_start_work);
         assert!(s.sound.enabled);
         assert_eq!(s.sound.volume, 0.7);
         assert!(!s.autostart);
@@ -204,7 +209,7 @@ mod tests {
         assert_eq!(json["sound"]["to_break_path"], serde_json::Value::Null);
         assert_eq!(json["toggle_window_hotkey"], "Ctrl+Alt+E");
         let keys: Vec<&String> = json.as_object().unwrap().keys().collect();
-        assert_eq!(keys.len(), 15);
+        assert_eq!(keys.len(), 16);
     }
 
     #[test]

@@ -1,4 +1,5 @@
-//! Global shortcuts: toggle the main window, hold-to-move the HUD.
+//! Global shortcuts: toggle the main window, hold-to-move the HUD, flip
+//! auto-start of the next focus phase.
 
 use std::sync::atomic::Ordering;
 use std::time::Duration;
@@ -10,7 +11,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 use crate::app_state::AppState;
 use crate::error::AppResult;
-use crate::windows;
+use crate::{commands, windows};
 
 const MOVE_MODE_EVENT: &str = "hud:move-mode";
 /// Leaves move mode even if the `Released` event never arrives.
@@ -42,6 +43,16 @@ pub fn register_all(app: &AppHandle, settings: &Settings) -> AppResult<()> {
         |app, state| match state {
             ShortcutState::Pressed => enter_move_mode(app),
             ShortcutState::Released => exit_move_mode(app),
+        },
+    );
+    register(
+        app,
+        &settings.toggle_auto_start_hotkey,
+        "toggle auto-start",
+        |app, state| {
+            if state == ShortcutState::Pressed {
+                commands::do_toggle_auto_start(app);
+            }
         },
     );
     Ok(())

@@ -18,6 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hud: { x: null, y: null, opacity: 0.85, scale: 1, visible: true },
   toggle_window_hotkey: "Ctrl+Alt+E",
   move_hud_hotkey: "Ctrl+Alt+Z",
+  toggle_auto_start_hotkey: "Ctrl+Alt+A",
   sound: { enabled: true, volume: 0.6, to_break_path: null, to_work_path: null },
   autostart: false,
   start_on_launch: true,

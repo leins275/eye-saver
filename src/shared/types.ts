@@ -91,6 +91,8 @@ export interface Settings {
   /** Tauri shortcut strings, e.g. "Ctrl+Alt+E". */
   toggle_window_hotkey: string;
   move_hud_hotkey: string;
+  /** Flips `auto_start_work` from anywhere. */
+  toggle_auto_start_hotkey: string;
   sound: SoundSettings;
   autostart: boolean;
   start_on_launch: boolean;

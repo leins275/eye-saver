@@ -272,6 +272,22 @@
   margin-top: 6px;
 }
 
+.timer-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.timer-auto-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Session caption */
 .label-card {
   display: flex;

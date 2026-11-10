@@ -18,6 +18,7 @@ export function Hud() {
   const { settings } = useSettings();
   const [flash, setFlash] = useState(false);
   const [moveMode, setMoveMode] = useState(false);
+  const [autoPulse, setAutoPulse] = useState(false);
   const readySent = useRef(false);
   const settingsRef = useRef(settings);
 
@@ -69,15 +70,31 @@ export function Hud() {
     };
   }, []);
 
+  // Briefly highlight the auto-start tag when it flips (hotkey feedback).
+  const autoStart = settings?.auto_start_work ?? null;
+  const lastAutoStart = useRef<boolean | null>(null);
+  useEffect(() => {
+    const prev = lastAutoStart.current;
+    lastAutoStart.current = autoStart;
+    if (prev === null || autoStart === null || prev === autoStart) return;
+    setAutoPulse(true);
+    const handle = setTimeout(() => setAutoPulse(false), 1500);
+    return () => clearTimeout(handle);
+  }, [autoStart]);
+
   const hud = settings?.hud;
   const scale = hud?.scale ?? 1;
   const opacity = moveMode ? 1 : (hud?.opacity ?? 0.85);
   const warning = flash || state?.warning === true;
   const paused = state !== null && !state.running;
-  // During focus the caption's title replaces the word "focus" (raw as fallback).
+  // During focus the caption's project code replaces the word "focus"; a
+  // caption without a project shows its title (raw as fallback).
   const caption =
     state?.label && state.phase === "work" && !paused
-      ? parseLabel(state.label)?.title || state.label
+      ? (() => {
+          const parsed = parseLabel(state.label);
+          return parsed?.project || parsed?.title || state.label;
+        })()
       : null;
   const phaseLabel =
     state === null ? "" : paused ? "paused" : state.phase === "work" ? "focus" : "break";
@@ -92,6 +109,7 @@ export function Hud() {
   if (paused) classes.push("is-paused");
   if (moveMode) classes.push("is-moving");
   if (state?.phase === "break") classes.push("is-break");
+  if (autoPulse) classes.push("is-auto-pulse");
 
   return (
     <div className="hud-root" style={{ "--hud-scale": scale } as CSSProperties} {...drag}>
@@ -112,6 +130,19 @@ export function Hud() {
         >
           {caption ?? phaseLabel}
         </span>
+        {autoStart !== null && (
+          <span
+            className={autoStart ? "hud-auto" : "hud-auto is-off"}
+            title={
+              autoStart
+                ? "Next focus starts automatically after the break"
+                : "Next focus waits for Start after the break"
+            }
+            {...drag}
+          >
+            {autoStart ? "auto" : "manual"}
+          </span>
+        )}
         {moveMode && (
           <span className="hud-hint" {...drag}>
             drag to move

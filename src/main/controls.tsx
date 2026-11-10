@@ -145,7 +145,7 @@ export function HotkeyField({
         onKeyDown={onKeyDown}
       />
       {!valid && <span className="hotkey-error hint">Needs a key besides modifiers.</span>}
-      {valid && conflict && <span className="hotkey-error hint">Same as the other shortcut.</span>}
+      {valid && conflict && <span className="hotkey-error hint">Same as another shortcut.</span>}
     </span>
   );
 }

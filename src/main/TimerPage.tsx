@@ -4,6 +4,7 @@ import { formatClock, presetLabel, presetMinutes } from "../shared/format";
 import { parseLabel } from "../shared/label";
 import { PRESETS, type PresetId, type TimerState } from "../shared/types";
 import type { useSettings } from "../shared/useSettings";
+import { Toggle } from "./controls";
 import { LabelField } from "./LabelField";
 
 type Store = ReturnType<typeof useSettings>;
@@ -150,6 +151,24 @@ export function TimerPage({ timer, store }: { timer: TimerState | null; store: S
             Stop
           </button>
         </div>
+        <label className="timer-auto" htmlFor="auto-start-work">
+          <Toggle
+            id="auto-start-work"
+            label="Auto-start focus after a break"
+            checked={settings?.auto_start_work ?? true}
+            disabled={!settings}
+            onChange={(v) => void run(() => commit({ auto_start_work: v }))}
+          />
+          <span className="timer-auto-text">
+            Auto-start next focus
+            {settings && (
+              <>
+                {" "}
+                <kbd className="kbd">{settings.toggle_auto_start_hotkey}</kbd>
+              </>
+            )}
+          </span>
+        </label>
       </section>
 
       <LabelField

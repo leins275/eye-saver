@@ -37,7 +37,8 @@ function arrange(timer: Partial<TimerState> = {}) {
     update: vi.fn(),
     commit: vi.fn(() => Promise.resolve()),
   } as unknown as ReturnType<typeof useSettings>;
-  return render(<TimerPage timer={state} store={store} />);
+  render(<TimerPage timer={state} store={store} />);
+  return { commit: store.commit };
 }
 
 describe("TimerPage caption", () => {
@@ -88,6 +89,21 @@ describe("TimerPage caption", () => {
   it("shows the current caption as a line in the hero", () => {
     arrange({ label: "CORE-discuss Q3 strategy-sync,strategy" });
     expect(screen.getByText("CORE · discuss Q3 strategy · sync, strategy")).toBeInTheDocument();
+  });
+});
+
+describe("TimerPage auto-start", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("the switch commits the flipped flag and shows the hotkey", async () => {
+    const { commit } = arrange();
+    expect(screen.getByText(DEFAULT_SETTINGS.toggle_auto_start_hotkey)).toBeInTheDocument();
+    const toggle = screen.getByRole("switch", { name: "Auto-start focus after a break" });
+    expect(toggle).toBeChecked();
+    await userEvent.click(toggle);
+    expect(commit).toHaveBeenCalledWith({ auto_start_work: false });
   });
 });
 

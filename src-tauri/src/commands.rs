@@ -61,6 +61,29 @@ pub fn do_stop(app: &AppHandle) -> TimerState {
     timer_state
 }
 
+/// Flips `auto_start_work`, persists it and pushes the new settings and timer
+/// state to every window. Does not re-register shortcuts, so it is safe to
+/// call from inside a shortcut handler.
+pub fn do_toggle_auto_start(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let settings = {
+        let mut settings = state.lock_settings();
+        settings.auto_start_work = !settings.auto_start_work;
+        settings.clone()
+    };
+    if let Err(e) = state.save_settings() {
+        log::warn!("save settings: {e}");
+    }
+    let timer_state = state
+        .lock_timer()
+        .set_config(settings.timer_config(), now());
+    if let Err(e) = app.emit(EVENT_SETTINGS_CHANGED, &settings) {
+        log::warn!("emit {EVENT_SETTINGS_CHANGED}: {e}");
+    }
+    emit_state(app, EVENT_TICK, &timer_state);
+    state.wake.notify_one();
+}
+
 pub fn do_reset_hud_position(app: &AppHandle) -> AppResult<()> {
     let state = app.state::<AppState>();
     let settings = {

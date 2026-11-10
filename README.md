@@ -28,8 +28,9 @@ away for 20 seconds. Eye Saver turns that into something you cannot miss.
   by default; Skip and +1 min buttons are there when you need them.
 - **5-second warning** before every phase change: a short sound and a HUD flash.
 - **Tray icon** with Show/Hide, Start/Pause, Skip, Reset HUD position and Quit.
-- **Global hotkey** `Ctrl+Alt+E` toggles the settings window. Both shortcuts are
-  configurable.
+- **Global hotkeys**: `Ctrl+Alt+E` toggles the settings window, `Ctrl+Alt+A`
+  flips whether the next focus starts by itself after a break (the HUD shows
+  an `auto` / `manual` tag). All three shortcuts are configurable.
 - **Statistics**: completed work blocks and breaks for today, the last 7 days
   and your current streak.
 - **Auto-update**: the app checks GitHub Releases at launch and offers signed

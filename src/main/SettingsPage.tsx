@@ -57,8 +57,11 @@ export function SettingsPage({ store }: { store: Store }) {
   }
 
   const s: Settings = settings;
-  const hotkeyConflict =
-    s.toggle_window_hotkey.trim().toLowerCase() === s.move_hud_hotkey.trim().toLowerCase();
+  const hotkeys = [s.toggle_window_hotkey, s.move_hud_hotkey, s.toggle_auto_start_hotkey].map((h) =>
+    h.trim().toLowerCase(),
+  );
+  const hotkeyConflict = (combo: string) =>
+    hotkeys.filter((h) => h === combo.trim().toLowerCase()).length > 1;
 
   const clampInt = (raw: string, min: number, max: number, fallback: number) => {
     const n = Number.parseInt(raw, 10);
@@ -163,18 +166,6 @@ export function SettingsPage({ store }: { store: Store }) {
             value={s.warning_secs}
             format={(v) => `${v} s`}
             onChange={(v) => update({ warning_secs: v })}
-          />
-        </Row>
-        <Row
-          label="Auto-start focus after a break"
-          hint="Off: when the break ends the timer waits, paused, until you press Start."
-          htmlFor="auto-start-work"
-        >
-          <Toggle
-            id="auto-start-work"
-            label="Auto-start focus after a break"
-            checked={s.auto_start_work}
-            onChange={(v) => update({ auto_start_work: v })}
           />
         </Row>
       </Section>
@@ -307,7 +298,7 @@ export function SettingsPage({ store }: { store: Store }) {
             id="hotkey-toggle"
             label="Toggle window hotkey"
             value={s.toggle_window_hotkey}
-            conflict={hotkeyConflict}
+            conflict={hotkeyConflict(s.toggle_window_hotkey)}
             onChange={(combo) => update({ toggle_window_hotkey: combo })}
           />
         </Row>
@@ -320,8 +311,21 @@ export function SettingsPage({ store }: { store: Store }) {
             id="hotkey-move"
             label="Move HUD hotkey"
             value={s.move_hud_hotkey}
-            conflict={hotkeyConflict}
+            conflict={hotkeyConflict(s.move_hud_hotkey)}
             onChange={(combo) => update({ move_hud_hotkey: combo })}
+          />
+        </Row>
+        <Row
+          label="Toggle auto-start of the next focus"
+          hint="Flips the switch on the Timer page without opening the window; the HUD tag shows the state."
+          htmlFor="hotkey-auto-start"
+        >
+          <HotkeyField
+            id="hotkey-auto-start"
+            label="Toggle auto-start hotkey"
+            value={s.toggle_auto_start_hotkey}
+            conflict={hotkeyConflict(s.toggle_auto_start_hotkey)}
+            onChange={(combo) => update({ toggle_auto_start_hotkey: combo })}
           />
         </Row>
       </Section>
