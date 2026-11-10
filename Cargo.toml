@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["crates/eye-core", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.90"
+license = "MIT"
+repository = "https://github.com/leins275/eye-saver"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

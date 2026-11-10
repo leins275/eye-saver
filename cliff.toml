@@ -1,0 +1,85 @@
+# git-cliff configuration — conventional commits in, CHANGELOG.md and the
+# next semver out.
+#
+# This file decides two things and nothing else:
+#
+#   1. What the next version is (`git-cliff --bumped-version`), from the
+#      conventional-commit types since the most recent `v*` tag.
+#   2. What CHANGELOG.md says (`git-cliff --bump -o CHANGELOG.md`).
+#
+# It deliberately does **not** know where the version is written. That stays
+# `version.txt` + `scripts/sync_version.py`, which is the single source of
+# truth for every manifest and both lockfiles. `scripts/prepare_release.py`
+# is the seam that joins the two.
+#
+# Run `uv run scripts/prepare_release.py --print-next` to see what the next
+# version would be without changing anything.
+
+[changelog]
+header = """
+# Changelog
+
+Every release of Eye Saver, newest first. Generated from conventional
+commits by git-cliff — edit the commit messages, not this file.\n
+"""
+body = """
+{% if version -%}
+## {{ version | trim_start_matches(pat="v") }} — {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+## Unreleased
+{% endif %}
+{%- for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{{ commit.message | upper_first }}\
+{% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+# Keep non-conventional subjects visible under "Other" rather than silently
+# dropping them -- but see `commit_parsers`: those never drive a version
+# bump, because a subject nobody wrote to a convention cannot be read as a
+# promise about compatibility.
+filter_unconventional = false
+split_commits = false
+protect_breaking_commits = true
+filter_commits = false
+tag_pattern = "v[0-9]*"
+topo_order = false
+sort_commits = "newest"
+
+commit_parsers = [
+  # Release commits this pipeline made itself: never in the changelog.
+  { message = "^chore\\(release\\)", skip = true },
+  # Every merge commit, whatever it merged: its subject names no change and
+  # its body is git's own conflict list, neither of which belongs in a
+  # changelog. The changes themselves arrive through the merged commits.
+  { message = "^[Mm]erge ", skip = true },
+
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Bug fixes" },
+  { message = "^perf", group = "Performance" },
+  { message = "^refactor", group = "Refactoring" },
+  { message = "^docs", group = "Documentation" },
+  { message = "^test", group = "Tests" },
+  { message = "^build|^ci", group = "Build & CI" },
+  { message = "^chore", group = "Chores" },
+  { message = "^revert", group = "Reverts" },
+  { message = ".*", group = "Other" },
+]
+
+[bump]
+# The version the very first release carries, on a repository that has no
+# `v*` tag yet. It matches version.txt's starting value on purpose: the first
+# bump-worthy merge then writes 0.1.0 everywhere (a no-op) and tags v0.1.0,
+# and every later release is computed from the range since the last tag.
+initial_tag = "v0.1.0"
+# A `feat` moves the minor even below 1.0. That is the deliberate reading:
+# this app is pre-1.0 and shipping user-visible features regularly, and
+# burying those in a patch number would make the version say nothing.
+features_always_bump_minor = true
+breaking_always_bump_major = true

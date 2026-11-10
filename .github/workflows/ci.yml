@@ -1,0 +1,182 @@
+# Quality gate -- the same `make` targets a developer runs locally
+# (format / lint / type / test), split by toolchain and run in parallel.
+#
+# Where each job runs is a constraint, not a preference:
+#
+#   rust        windows. The primary platform: the full fmt/clippy/test gate
+#               runs here.
+#   rust-linux  ubuntu. The Linux release leg compiles against webkit2gtk
+#               and friends; this job keeps that compile honest on every PR
+#               and runs the test suite under it.
+#   rust-macos  macOS (Apple Silicon). `cargo check` only -- the cheapest
+#               guard that a Windows-focused PR cannot silently break the
+#               macOS release build's compile.
+#   frontend    Linux. React, tsc and vitest care about none of the above,
+#               and a Linux runner starts quickest.
+#   scripts     Linux. The release scripts are plain Python.
+#
+# `make` is not installed on GitHub's Windows runners. The Makefile documents
+# a direct one-command-per-line equivalent for exactly this reason (see its
+# header); the steps below are that equivalent.
+
+name: CI
+
+# `pull_request` plus `workflow_call`, deliberately -- not `push: main`.
+#
+# A pull_request event builds `refs/pull/N/merge`: the branch already merged
+# into main, i.e. the exact tree merging produces. Re-running the gate on
+# the push to main afterwards would build it a second time for the same
+# answer. `workflow_call` closes the one gap that leaves: `tag.yml` runs on
+# every push to main, detects whether the commit landed via a merged PR, and
+# calls this workflow as its gate only for direct pushes. See
+# docs/releasing.md. `workflow_dispatch` stays so main can be checked on
+# demand.
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+# A new push to a PR makes the previous run's answer irrelevant.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      # src-tauri's build script (tauri-build) refuses to compile when the
+      # configured `frontendDist` (`../dist`) does not exist. The Rust gate
+      # never builds the frontend, so an empty directory stands in for it.
+      - name: Provide an empty frontendDist for tauri-build
+        shell: bash
+        run: mkdir -p dist
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      # No separate `cargo check`: clippy with `--all-targets` compiles
+      # strictly more than check does.
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace
+
+  rust-linux:
+    name: Rust (Linux)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      # The system libraries Tauri links against on Linux; the same list the
+      # Linux release leg installs.
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev libssl-dev build-essential curl wget file
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      # See the `rust` job: tauri-build needs `frontendDist` to exist.
+      - name: Provide an empty frontendDist for tauri-build
+        run: mkdir -p dist
+
+      - name: cargo test
+        run: cargo test --workspace
+
+  rust-macos:
+    name: Rust (macOS check)
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      # See the `rust` job: tauri-build needs `frontendDist` to exist.
+      - name: Provide an empty frontendDist for tauri-build
+        run: mkdir -p dist
+
+      - name: cargo check
+        run: cargo check --workspace
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` (never `npm install`): release builds install from the
+      # committed lock in frozen mode, and CI must hold to the same rule or
+      # it is testing a different dependency tree than the one that ships.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: eslint
+        run: npm run lint
+
+      - name: prettier
+        run: npm run format:check
+
+      - name: tsc
+        run: npm run type
+
+      - name: vitest
+        run: npm run test
+
+      - name: vite build
+        run: npm run build
+
+  scripts:
+    name: Release scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: pytest
+        run: uv run --with pytest -- pytest scripts/tests -q
+
+      # The single guard that every copy of the product version agrees --
+      # version.txt, the three manifests and both lockfiles. Drift here is
+      # what breaks a release build with an error naming none of them.
+      - name: version manifests in sync
+        run: uv run scripts/sync_version.py --check
+
+      - name: ruff
+        run: uv run --with ruff ruff check scripts

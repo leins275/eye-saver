@@ -1,0 +1,132 @@
+/* Veil window: transparent page, the darkness is this one rgba layer. */
+
+html,
+body {
+  background: transparent !important;
+  overflow: hidden;
+}
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+.veil {
+  --veil-opacity: 0.92;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 14, 26, var(--veil-opacity));
+  animation: veil-in 480ms var(--ease) both;
+}
+
+.veil-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(14px, 2.2vh, 28px);
+  padding: 24px;
+  max-width: min(90vw, 1100px);
+  text-align: center;
+  animation: veil-rise 640ms var(--ease) both;
+}
+
+.veil-kicker {
+  color: var(--accent);
+  font-size: clamp(11px, 1vw, 14px);
+}
+
+.veil-clock {
+  font-size: clamp(96px, 18vw, 240px);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--fg-strong);
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
+  min-height: 1em;
+}
+
+.veil-progress {
+  width: clamp(240px, 32vw, 520px);
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.veil-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+  transition: width 900ms linear;
+}
+
+.veil-caption {
+  font-size: clamp(17px, 1.9vw, 28px);
+  font-weight: 400;
+  color: var(--fg);
+  opacity: 0.85;
+  max-width: 44ch;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.veil-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: clamp(8px, 2vh, 24px);
+}
+
+.veil-btn {
+  height: 40px;
+  padding: 0 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--fg);
+  font-size: 15px;
+}
+
+.veil-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.veil-kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+@keyframes veil-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes veil-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .veil,
+  .veil-content {
+    animation: none;
+  }
+}

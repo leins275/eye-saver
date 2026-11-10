@@ -1,0 +1,376 @@
+# Builds and publishes the release for a `v*` tag.
+#
+# The tag is the trigger and the single source of truth: `tag.yml` creates
+# one on every bump-worthy merge to main (and dispatches this workflow at
+# it, because tags pushed with the built-in GITHUB_TOKEN never fire `on:
+# push` themselves), and a human pushing a `v*` tag by hand lands here the
+# same way.
+#
+# The tag existing before the build is the price of that simplicity: if a
+# bundle build fails, the version looks cut but nothing is published. The
+# recovery is cheap and safe -- fix whatever broke the runner and re-run
+# this workflow on the same tag; the `check` job below makes a re-run of an
+# already-published version a no-op instead of a duplicate release.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  # Cheap gate on a Linux runner: guard against a mis-aimed manual dispatch
+  # and against double-publishing, so the three builders only ever spin up
+  # with real work to do.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.decide.outputs.version }}
+      release: ${{ steps.decide.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: decide
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # A manual dispatch aimed at a branch has no version to release;
+          # failing loudly beats guessing one from version.txt and publishing
+          # a release no tag points at.
+          case "$GITHUB_REF" in
+            refs/tags/v*) ;;
+            *)
+              echo "::error::this workflow releases tags; dispatch it with --ref refs/tags/vX.Y.Z (got $GITHUB_REF)"
+              exit 1
+              ;;
+          esac
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # The tag and the tree it points at must agree on the version, or
+          # the bundles would be built claiming a different version than the
+          # release they are attached to.
+          tree_version=$(tr -d '[:space:]' < version.txt)
+          if [ "$tree_version" != "$version" ]; then
+            echo "::error::tag v$version points at a tree whose version.txt says $tree_version"
+            exit 1
+          fi
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v$version is already published -- nothing to release"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # One leg per platform, in parallel: the Windows NSIS installer, the macOS
+  # (Apple Silicon) dmg + updater archive, and the Linux AppImage. Each leg
+  # runs the same `tauri build` a developer runs locally, stages its assets
+  # under a per-platform artifact name, and uploads them for the fan-in
+  # `publish` job below -- the release object itself is only ever created
+  # once, after *all* legs succeed, so a failed leg leaves no partial
+  # release behind.
+  build:
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            slug: windows-x86_64
+          - os: macos-14 # Apple Silicon (arm64) runner
+            slug: darwin-aarch64
+          - os: ubuntu-22.04
+            slug: linux-x86_64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The system libraries Tauri links against on Linux; the same list
+      # ci.yml's `rust-linux` job installs.
+      - name: Install Tauri system dependencies (Linux)
+        if: matrix.slug == 'linux-x86_64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev libssl-dev build-essential curl wget file
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # `beforeBuildCommand` runs `npm run build` (tsc + vite) first, then
+      # cargo in release mode, then the bundler. Two `--` layers, both
+      # needed: the first stops npm from parsing what follows as its own
+      # flags, the second is Tauri CLI's marker for "forward the rest to
+      # cargo" -- so `--locked` reaches cargo itself and a drifted Cargo.lock
+      # fails loudly instead of being rewritten mid-release.
+      #
+      # The signing key is what makes an update an *update* rather than an
+      # arbitrary executable a client was talked into running. Without these
+      # set, `createUpdaterArtifacts` fails the build rather than silently
+      # publishing unsigned archives -- which is the right way round.
+      #
+      # NO_STRIP: linuxdeploy's own `strip` step is known to fail on some
+      # runners when building the AppImage; cargo already strips the binary
+      # (`[profile.release] strip = true`), so nothing is lost.
+      #
+      # The macOS app is NOT Apple-signed or notarized (no Developer ID):
+      # first launch needs right-click -> Open. When a certificate exists,
+      # signing/notarization slots in here via:
+      #   APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD /
+      #   APPLE_SIGNING_IDENTITY / APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID
+      - name: Build the bundle
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          NO_STRIP: ${{ matrix.slug == 'linux-x86_64' && 'true' || '' }}
+        run: npm run tauri -- build -- --locked
+
+      # Everything the publish job needs from this leg, verified and staged.
+      # The bundler names files after `productName` ("Eye Saver_<v>_x64-setup.exe",
+      # "Eye Saver_<v>_aarch64.dmg", "Eye Saver_<v>_amd64.AppImage",
+      # "Eye Saver.app.tar.gz"), so the globs below are the contract rather
+      # than a spelled-out name that could drift from the bundler's.
+      #
+      # The updater consumes different artifacts per platform: on Windows and
+      # Linux `createUpdaterArtifacts` signs the installer itself (`.exe.sig`,
+      # `.AppImage.sig`); on macOS it produces a separate `.app.tar.gz` +
+      # `.sig` -- the .dmg is first-install media only and ships unsigned.
+      - name: Stage release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="target/release/bundle"
+          mkdir -p stage
+          # Copies every match of a glob into stage/, or fails naming the
+          # glob -- `cp` alone would fail too, but with a message about the
+          # literal pattern, and without listing what the bundler did make.
+          stage() {
+            local matched=0 file
+            for file in "$@"; do
+              [ -e "$file" ] || continue
+              cp "$file" stage/
+              matched=1
+            done
+            if [ "$matched" -eq 0 ]; then
+              echo "::error::no bundle output matched $* -- was TAURI_SIGNING_PRIVATE_KEY set for the build?"
+              find "$bundle" -maxdepth 2 -type f -print || echo "  (no bundle directory at all)"
+              exit 1
+            fi
+          }
+          case "${{ matrix.slug }}" in
+            windows-x86_64)
+              stage "$bundle"/nsis/*.exe
+              stage "$bundle"/nsis/*.exe.sig
+              ;;
+            darwin-aarch64)
+              stage "$bundle"/dmg/*.dmg
+              stage "$bundle"/macos/*.app.tar.gz
+              stage "$bundle"/macos/*.app.tar.gz.sig
+              ;;
+            linux-x86_64)
+              stage "$bundle"/appimage/*.AppImage
+              stage "$bundle"/appimage/*.AppImage.sig
+              ;;
+          esac
+          # Nothing staged may be empty, and the installers must be of a
+          # plausible size: a few KB here is a failed build that exited 0.
+          for asset in stage/*; do
+            if [ ! -s "$asset" ]; then
+              echo "::error::release asset is empty: $asset"
+              exit 1
+            fi
+            case "$asset" in
+              *.exe|*.dmg|*.AppImage)
+                size=$(wc -c < "$asset" | tr -d '[:space:]')
+                if [ "$size" -lt 1000000 ]; then
+                  echo "::error::$asset is only $size bytes -- that is not a real build"
+                  exit 1
+                fi
+                ;;
+            esac
+          done
+          echo "staged for ${{ matrix.slug }}:"
+          ls -la stage/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.slug }}
+          path: stage/
+          if-no-files-found: error
+
+  # Fan-in: download every leg's staged assets, assemble one combined update
+  # manifest, and create the release exactly once with everything attached.
+  publish:
+    needs: [check, build]
+    if: needs.check.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # For CHANGELOG.md and version.txt only.
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: Extract this version's changelog section
+        shell: bash
+        run: |
+          version="${{ needs.check.outputs.version }}"
+          # The section runs from this version's heading to the next `## `.
+          awk -v v="$version" '
+            $0 ~ "^## " v " " { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "See CHANGELOG.md for the changes in this release." > release-notes.md
+          fi
+
+      # The manifest the installed app polls. Built here rather than by the
+      # bundler because only this job knows the URL these assets will end up
+      # at, and written from the *signature files the builds actually
+      # produced* -- so a manifest can never claim a signature that was not
+      # made for these bytes.
+      #
+      # Per platform the updater downloads different things: on Windows the
+      # NSIS installer itself (signed in place; `plugins.updater.windows.
+      # installMode: "passive"` is the client half), on macOS the
+      # `.app.tar.gz` updater archive (never the .dmg), on Linux the
+      # AppImage itself.
+      #
+      # Assembled in Python rather than shell: `notes` is arbitrary prose
+      # from CHANGELOG.md, and hand-escaping that into JSON with sed is how
+      # a release ends up publishing a manifest no client can parse. A
+      # malformed manifest reads as "no update available" to the updater,
+      # which would fail silently forever.
+      - name: Assemble the update manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime
+          import json
+          import os
+          import pathlib
+          import sys
+
+          version = os.environ["VERSION"]
+          assets = pathlib.Path("assets")
+          base = f"https://github.com/{os.environ['REPO']}/releases/download/v{version}"
+
+          def only(pattern: str) -> pathlib.Path:
+              matches = sorted(assets.glob(pattern))
+              if len(matches) != 1:
+                  sys.exit(f"::error::expected exactly one staged {pattern}, found {matches}")
+              return matches[0]
+
+          def signed_platform(artifact: pathlib.Path) -> dict:
+              signature = artifact.with_name(artifact.name + ".sig")
+              if not signature.is_file():
+                  sys.exit(f"::error::updater signature missing for {artifact.name}")
+              # GitHub renames an uploaded asset by replacing every space
+              # with a dot ("Eye Saver_1.0.0_x64-setup.exe" is served as
+              # "Eye.Saver_1.0.0_x64-setup.exe"), so the URL the updater
+              # fetches must carry the dotted name, not the bundler's.
+              return {
+                  "signature": signature.read_text(encoding="utf-8").strip(),
+                  "url": f"{base}/{artifact.name.replace(' ', '.')}",
+              }
+
+          platforms = {
+              "windows-x86_64": signed_platform(only("*.exe")),
+              "darwin-aarch64": signed_platform(only("*.app.tar.gz")),
+              "linux-x86_64": signed_platform(only("*.AppImage")),
+          }
+          notes = pathlib.Path("release-notes.md").read_text(encoding="utf-8").strip()
+          pathlib.Path("latest.json").write_text(
+              json.dumps(
+                  {
+                      "version": version,
+                      "notes": notes[:4000],
+                      "pub_date": datetime.datetime.now(datetime.timezone.utc)
+                      .replace(microsecond=0)
+                      .isoformat()
+                      .replace("+00:00", "Z"),
+                      "platforms": platforms,
+                  },
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          print("latest.json covers " + ", ".join(p["url"].rsplit("/", 1)[1] for p in platforms.values()))
+          PY
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+          REPO: ${{ github.repository }}
+
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.check.outputs.version }}"
+          gh release create "v$version" \
+            --title "Eye Saver $version" \
+            --notes-file release-notes.md \
+            assets/* \
+            latest.json
+
+      # `gh release create` can succeed with a partial upload if an asset is
+      # rejected after the release object is made. Read the published release
+      # back and confirm the three updater assets and the dmg are actually
+      # attached -- the whole point of the release is those files. GitHub
+      # replaces spaces in asset names with dots on upload, so the names are
+      # compared after the same substitution.
+      - name: Confirm the bundles are attached to the published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.check.outputs.version }}"
+          failed=0
+          for path in assets/*.exe assets/*.dmg assets/*.app.tar.gz assets/*.AppImage; do
+            name=$(basename "$path" | tr ' ' '.')
+            size=$(gh release view "v$version" \
+              --json assets \
+              --jq ".assets[] | select(.name == \"$name\") | .size")
+            if [ -z "$size" ]; then
+              echo "::error::v$version published without $name attached"
+              failed=1
+            else
+              echo "v$version has $name attached ($size bytes)"
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            gh release view "v$version" --json assets --jq '.assets[].name'
+            exit 1
+          fi

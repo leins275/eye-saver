@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "hud",
+  "description": "Transparent always-on-top countdown. Listens to timer events, shows itself once rendered (avoids a white flash), and drags itself while the move shortcut is held.",
+  "windows": ["hud"],
+  "permissions": [
+    "core:event:default",
+    "core:window:allow-show",
+    "core:window:allow-start-dragging",
+    "core:window:allow-outer-position"
+  ]
+}

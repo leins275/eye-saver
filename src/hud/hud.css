@@ -1,0 +1,155 @@
+/* HUD window: fully transparent page, one pill. */
+
+html,
+body {
+  background: transparent !important;
+  overflow: hidden;
+}
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+.hud-root {
+  --hud-scale: 1;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  /* Pill sits at the bottom; the move-mode hint needs the room above it. */
+  align-items: flex-end;
+  justify-content: center;
+  padding: 4px;
+}
+
+.hud {
+  --pill-bg: rgba(11, 18, 32, 0.82);
+  --pill-line: rgba(255, 255, 255, 0.1);
+  --pill-accent: var(--accent);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(8px * var(--hud-scale));
+  height: calc(40px * var(--hud-scale));
+  padding: 0 calc(14px * var(--hud-scale)) 0 calc(12px * var(--hud-scale));
+  border-radius: var(--r-pill);
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-line);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 6px 18px rgba(0, 0, 0, 0.35);
+  color: var(--fg);
+  transition:
+    opacity var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.hud-dot {
+  width: calc(7px * var(--hud-scale));
+  height: calc(7px * var(--hud-scale));
+  border-radius: 50%;
+  background: var(--pill-accent);
+  box-shadow: 0 0 calc(8px * var(--hud-scale)) var(--pill-accent);
+  flex: none;
+}
+
+.hud-clock {
+  font-size: calc(20px * var(--hud-scale));
+  font-weight: 500;
+  line-height: 1;
+  color: var(--fg-strong);
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--hud-scale));
+}
+
+.hud-pause {
+  font-size: 0.55em;
+  letter-spacing: -0.15em;
+  color: var(--muted);
+  transform: translateY(-0.05em);
+}
+
+.hud-phase {
+  font-size: calc(10.5px * var(--hud-scale));
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.hud-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%);
+  font-size: calc(10px * var(--hud-scale));
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Paused: dimmed, grey dot. */
+.hud.is-paused {
+  --pill-accent: var(--muted-2);
+}
+
+.hud.is-paused .hud-clock {
+  color: var(--muted);
+}
+
+.hud.is-break {
+  --pill-accent: var(--accent-strong);
+}
+
+/* Warning: the pill breathes amber for the last few seconds. */
+.hud.is-warning {
+  --pill-accent: var(--amber);
+  animation: hud-pulse 1s var(--ease) infinite;
+}
+
+.hud.is-warning .hud-clock {
+  color: var(--amber);
+}
+
+@keyframes hud-pulse {
+  0%,
+  100% {
+    border-color: var(--pill-line);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  50% {
+    border-color: var(--amber);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 0 0 4px var(--amber-dim),
+      0 0 22px var(--amber-dim);
+  }
+}
+
+/* Move mode: dashed accent outline, cursor says "drag". */
+.hud.is-moving {
+  border: 1px dashed var(--accent);
+  background: rgba(11, 18, 32, 0.95);
+  cursor: move;
+  box-shadow:
+    0 0 0 3px var(--accent-dim),
+    0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.hud.is-moving * {
+  cursor: move;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud.is-warning {
+    animation: none;
+    border-color: var(--amber);
+  }
+}

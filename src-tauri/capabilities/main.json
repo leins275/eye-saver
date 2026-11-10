@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Settings + statistics window. Needs the app version, timer events, its own window control, the launch-time update check (updater + restart), the autostart toggle and a file picker for a custom sound. No fs/shell/http: everything else happens behind commands.",
+  "windows": ["main"],
+  "permissions": [
+    "core:app:default",
+    "core:event:default",
+    "core:window:default",
+    "core:webview:default",
+    "dialog:allow-open",
+    "updater:default",
+    "process:allow-restart",
+    "autostart:default"
+  ]
+}

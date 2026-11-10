@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "veil",
+  "description": "Per-monitor break veil. Listens to timer events and shows itself once rendered.",
+  "windows": ["veil-*"],
+  "permissions": ["core:event:default", "core:window:allow-show", "core:window:allow-close"]
+}

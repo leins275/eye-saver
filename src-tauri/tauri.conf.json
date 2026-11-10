@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Eye Saver",
+  "version": "0.1.0",
+  "identifier": "com.eyesaver.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Eye Saver",
+        "url": "index.html",
+        "width": 900,
+        "height": 640,
+        "minWidth": 720,
+        "minHeight": 520,
+        "visible": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' asset: http://asset.localhost",
+      "assetProtocol": { "enable": true, "scope": ["$HOME/**", "$APPDATA/**"] }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "dmg", "app", "appimage"],
+    "publisher": "leins275",
+    "shortDescription": "Eye-care break timer: 20-20-20, HUD countdown and a break veil",
+    "longDescription": "Eye Saver reminds you to rest your eyes while working at the computer. Pick a work/break rhythm (25/5, 45/15, 90/30 or your own), see the remaining time in a tiny always-on-top HUD, and get a full-screen veil with a countdown during breaks.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ],
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "displayLanguageSelector": false
+      }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDREMTJGN0U0RDAyNkVEOUIKUldTYjdTYlE1UGNTVGZvS0ZxakhVd3ZuR0pKc2xoQW5FVjFab1dMaUx2bmFOQTFpdGc1STh6QnQK",
+      "endpoints": ["https://github.com/leins275/eye-saver/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  }
+}
