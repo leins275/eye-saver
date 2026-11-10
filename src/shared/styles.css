@@ -331,6 +331,7 @@ a {
 .switch-track {
   position: absolute;
   inset: 0;
+  pointer-events: none;
   border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.14);
   transition: background var(--dur) var(--ease);
