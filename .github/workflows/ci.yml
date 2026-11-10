@@ -5,12 +5,8 @@
 #
 #   rust        windows. The primary platform: the full fmt/clippy/test gate
 #               runs here.
-#   rust-linux  ubuntu. The Linux release leg compiles against webkit2gtk
-#               and friends; this job keeps that compile honest on every PR
-#               and runs the test suite under it.
-#   rust-macos  macOS (Apple Silicon). `cargo check` only -- the cheapest
-#               guard that a Windows-focused PR cannot silently break the
-#               macOS release build's compile.
+#               Linux/macOS compile checks were dropped along with their
+#               release legs; re-add a job here when a leg comes back.
 #   frontend    Linux. React, tsc and vitest care about none of the above,
 #               and a Linux runner starts quickest.
 #   scripts     Linux. The release scripts are plain Python.
@@ -79,53 +75,6 @@ jobs:
 
       - name: cargo test
         run: cargo test --workspace
-
-  rust-linux:
-    name: Rust (Linux)
-    runs-on: ubuntu-22.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-
-      # The system libraries Tauri links against on Linux; the same list the
-      # Linux release leg installs.
-      - name: Install Tauri system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libxdo-dev libssl-dev build-essential curl wget file
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: . -> target
-
-      # See the `rust` job: tauri-build needs `frontendDist` to exist.
-      - name: Provide an empty frontendDist for tauri-build
-        run: mkdir -p dist
-
-      - name: cargo test
-        run: cargo test --workspace
-
-  rust-macos:
-    name: Rust (macOS check)
-    runs-on: macos-15
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: . -> target
-
-      # See the `rust` job: tauri-build needs `frontendDist` to exist.
-      - name: Provide an empty frontendDist for tauri-build
-        run: mkdir -p dist
-
-      - name: cargo check
-        run: cargo check --workspace
 
   frontend:
     name: Frontend

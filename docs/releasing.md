@@ -56,7 +56,7 @@ and both refuse a lockfile whose recorded version disagrees with its manifest.
 
 | File                            | Runs on                                         | Does                                                                                                                                                    |
 | ------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`      | every PR; called by `tag.yml` for direct pushes | Rust fmt/clippy/test on Windows, `cargo test` on Linux, `cargo check` on macOS, eslint/prettier/tsc/vitest/vite build, pytest + version sync check      |
+| `.github/workflows/ci.yml`      | every PR; called by `tag.yml` for direct pushes | Rust fmt/clippy/test on Windows, eslint/prettier/tsc/vitest/vite build, pytest + version sync check                                                     |
 | `.github/workflows/tag.yml`     | push to `main`                                  | runs the CI gate first if the push was direct (a PR merge is already gated); computes the next version; commits the bump + changelog and pushes the tag |
 | `.github/workflows/release.yml` | `v*` tag                                        | builds the three bundles in parallel, then a fan-in `publish` job creates the GitHub Release once with everything attached and verifies it              |
 
