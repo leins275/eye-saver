@@ -2,6 +2,7 @@
 //! this crate wires it to windows, tray, shortcuts and IPC.
 
 mod app_state;
+mod autostart;
 mod commands;
 mod error;
 mod shortcuts;
@@ -36,6 +37,7 @@ pub fn run() {
             commands::skip,
             commands::extend_break,
             commands::set_preset,
+            commands::set_label,
             commands::get_settings,
             commands::save_settings,
             commands::reset_hud_position,
@@ -75,7 +77,7 @@ fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
     };
 
     let settings = eye_core::settings::load(&paths.settings_path);
-    commands::sync_autostart(&handle, settings.autostart);
+    autostart::sync(&handle, settings.autostart);
 
     let timer = Timer::new(settings.timer_config());
     app.manage(AppState::new(timer, settings.clone(), paths));

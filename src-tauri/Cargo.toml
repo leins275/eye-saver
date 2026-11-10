@@ -27,3 +27,7 @@ thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros"] }
 log = "0.4"
 env_logger = "0.11"
+
+[target.'cfg(windows)'.dependencies]
+# Used directly on Windows to write a quoted exe path; see src/autostart.rs.
+auto-launch = "0.6"

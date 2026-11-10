@@ -3,12 +3,11 @@
 
 use eye_core::{Phase, PresetId, Settings, Stats, TimerState};
 use tauri::{AppHandle, Emitter, Manager, State};
-use tauri_plugin_autostart::ManagerExt;
 
 use crate::app_state::{now, AppState};
 use crate::error::{AppError, AppResult};
 use crate::timer_task::{EVENT_PHASE, EVENT_TICK};
-use crate::{shortcuts, windows};
+use crate::{autostart, shortcuts, windows};
 
 const EVENT_SETTINGS_CHANGED: &str = "settings:changed";
 
@@ -61,27 +60,11 @@ pub fn do_reset_hud_position(app: &AppHandle) -> AppResult<()> {
     windows::reset_hud_position(app, &settings)
 }
 
-/// Enables/disables launch-at-login to match `enabled`; failures are only logged.
-pub fn sync_autostart(app: &AppHandle, enabled: bool) {
-    let manager = app.autolaunch();
-    let current = manager.is_enabled().unwrap_or(false);
-    let result = if enabled && !current {
-        manager.enable()
-    } else if !enabled && current {
-        manager.disable()
-    } else {
-        Ok(())
-    };
-    if let Err(e) = result {
-        log::warn!("autostart sync failed: {e}");
-    }
-}
-
 fn apply_settings(app: &AppHandle, state: &AppState, settings: &Settings) {
     if let Err(e) = shortcuts::register_all(app, settings) {
         log::warn!("register shortcuts: {e}");
     }
-    sync_autostart(app, settings.autostart);
+    autostart::sync(app, settings.autostart);
     let timer_state = state
         .lock_timer()
         .set_config(settings.timer_config(), now());
@@ -155,6 +138,19 @@ pub fn set_preset(
     emit_state(&app, EVENT_TICK, &timer_state);
     state.wake.notify_one();
     Ok(timer_state)
+}
+
+/// Sets the caption for the current/next focus session; `None` or blank clears it.
+#[tauri::command]
+pub fn set_label(app: AppHandle, state: State<'_, AppState>, label: Option<String>) -> TimerState {
+    let timer_state = {
+        let mut timer = state.lock_timer();
+        timer.set_label(label);
+        timer.state(now())
+    };
+    emit_state(&app, EVENT_TICK, &timer_state);
+    state.wake.notify_one();
+    timer_state
 }
 
 #[tauri::command]
