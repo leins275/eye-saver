@@ -20,6 +20,12 @@ use app_state::{now, AppState, Paths};
 
 pub fn run() {
     tauri::Builder::default()
+        // Must be the first plugin: a second launch (e.g. the pinned taskbar
+        // icon) hands its args to this instance and exits before creating
+        // any window or tray icon of its own.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            windows::show_main(app);
+        }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
