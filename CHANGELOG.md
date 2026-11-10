@@ -3,6 +3,16 @@
 Every release of Eye Saver, newest first. Generated from conventional
 commits by git-cliff — edit the commit messages, not this file.
 
+## 0.3.0 — 2026-11-10
+
+### Build & CI
+
+- **release**: Publish the Windows installer only
+
+### Features
+
+- **settings**: Toggle to auto-start focus after a break
+
 ## 0.2.1 — 2026-11-10
 
 ### Bug fixes
