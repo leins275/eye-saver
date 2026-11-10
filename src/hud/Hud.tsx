@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { hudReady, onMoveMode, onPhase, onWarning } from "../shared/api";
 import { playChime } from "../shared/audio";
 import { formatClock } from "../shared/format";
+import { parseLabel } from "../shared/label";
 import { useSettings } from "../shared/useSettings";
 import { useTimer } from "../shared/useTimer";
 
@@ -73,6 +74,11 @@ export function Hud() {
   const opacity = moveMode ? 1 : (hud?.opacity ?? 0.85);
   const warning = flash || state?.warning === true;
   const paused = state !== null && !state.running;
+  // During focus the caption's title replaces the word "focus" (raw as fallback).
+  const caption =
+    state?.label && state.phase === "work" && !paused
+      ? parseLabel(state.label)?.title || state.label
+      : null;
   const phaseLabel =
     state === null ? "" : paused ? "paused" : state.phase === "work" ? "focus" : "break";
   const clock = state ? formatClock(state.remaining_secs) : "--:--";
@@ -99,8 +105,12 @@ export function Hud() {
           )}
           {clock}
         </span>
-        <span className="hud-phase" {...drag}>
-          {phaseLabel}
+        <span
+          className={caption ? "hud-phase hud-caption" : "hud-phase"}
+          title={caption ?? undefined}
+          {...drag}
+        >
+          {caption ?? phaseLabel}
         </span>
         {moveMode && (
           <span className="hud-hint" {...drag}>

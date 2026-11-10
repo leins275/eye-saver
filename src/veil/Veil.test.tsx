@@ -26,6 +26,7 @@ const BREAK: TimerState = {
   total_secs: 300,
   preset: "pomodoro",
   warning: false,
+  label: null,
 };
 
 function arrange(settings: Partial<Settings> = {}) {

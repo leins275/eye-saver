@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { getStats, onPhase } from "../shared/api";
-import { formatMinutes } from "../shared/format";
-import type { Stats } from "../shared/types";
+import { formatMinutes, formatSessionTime } from "../shared/format";
+import type { ProjectStats, SessionView, Stats } from "../shared/types";
 import { CHART, chartBars } from "./chart";
+import { LabelChips } from "./controls";
 
 function StatCard({ label, value, foot }: { label: string; value: string; foot?: string }) {
   return (
@@ -11,6 +12,60 @@ function StatCard({ label, value, foot }: { label: string; value: string; foot?:
       <p className="stat-value mono">{value}</p>
       {foot && <p className="hint">{foot}</p>}
     </div>
+  );
+}
+
+function plural(n: number, word: string): string {
+  return `${n} ${n === 1 ? word : `${word}s`}`;
+}
+
+function ProjectList({ rows }: { rows: ProjectStats[] }) {
+  if (rows.length === 0) {
+    return <p className="hint">Caption a focus session on the Timer page and it lands here.</p>;
+  }
+  const top = Math.max(1, rows[0].focus_secs);
+  return (
+    <ul className="project-list">
+      {rows.map((row) => (
+        <li key={row.project ?? ""} className="project-row">
+          <span className={row.project ? "project-name" : "project-name muted"}>
+            {row.project ?? "Unlabelled"}
+          </span>
+          <span className="project-bar" aria-hidden="true">
+            <span
+              className="project-bar-fill"
+              style={{ width: `${Math.min(100, (row.focus_secs / top) * 100)}%` }}
+            />
+          </span>
+          <span className="project-time mono">{formatMinutes(row.focus_secs)}</span>
+          <span className="project-sessions hint">{plural(row.sessions, "session")}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SessionList({ rows }: { rows: SessionView[] }) {
+  if (rows.length === 0) {
+    return <p className="hint">Finished focus sessions will show up here, newest first.</p>;
+  }
+  return (
+    <ul className="session-list">
+      {rows.map((row) => (
+        <li key={row.ts} className="session-row">
+          <span className="session-time hint">{formatSessionTime(row.ts)}</span>
+          <span className="session-body">
+            {row.label ? (
+              <LabelChips label={row.label} />
+            ) : (
+              <span className="label-title muted">Unlabelled</span>
+            )}
+            {!row.completed && <span className="session-skipped">skipped</span>}
+          </span>
+          <span className="session-dur mono">{formatMinutes(row.actual_secs)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -132,6 +187,20 @@ export function StatsPage() {
             );
           })}
         </svg>
+      </section>
+
+      <section className="card list-card">
+        <div className="chart-head">
+          <p className="kicker">By project · 7 days</p>
+        </div>
+        {stats && <ProjectList rows={stats.by_project_7d} />}
+      </section>
+
+      <section className="card list-card">
+        <div className="chart-head">
+          <p className="kicker">Recent sessions</p>
+        </div>
+        {stats && <SessionList rows={stats.recent} />}
       </section>
     </>
   );

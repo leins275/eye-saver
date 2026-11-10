@@ -45,3 +45,25 @@ export function presetMinutes(
   }
   return PRESETS[id];
 }
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function localMidnight(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/**
+ * When a session happened, relative to `now`, in local time: "Today 14:32"
+ * for the current day, "Mon 09:10" within the last week, "Nov 3" beyond that.
+ * Unparseable input yields "".
+ */
+export function formatSessionTime(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const time = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  const daysAgo = Math.round((localMidnight(now) - localMidnight(d)) / 86_400_000);
+  if (daysAgo === 0) return `Today ${time}`;
+  if (daysAgo > 0 && daysAgo < 7) return `${WEEKDAYS[d.getDay()]} ${time}`;
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}

@@ -1,12 +1,14 @@
 //! Eye Saver core: timer state machine, settings and statistics.
 //! No Tauri dependency so everything here is unit-testable on any machine.
 
+pub mod label;
 pub mod settings;
 pub mod stats;
 pub mod timer;
 
+pub use label::SessionLabel;
 pub use settings::{HudSettings, Settings, SoundSettings};
-pub use stats::{DayStats, Stats};
+pub use stats::{DayStats, ProjectStats, SessionView, Stats};
 pub use timer::{Phase, PresetId, SessionRecord, Timer, TimerConfig, TimerEvent, TimerState};
 
 /// Errors from disk I/O and JSON (de)serialization.

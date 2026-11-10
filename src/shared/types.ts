@@ -26,6 +26,21 @@ export interface TimerState {
   preset: PresetId;
   /** true during the final `warning_secs` of the phase. */
   warning: boolean;
+  /** Raw caption of the current/next focus session, e.g. "CORE-discuss Q3 strategy-sync,strategy". */
+  label: string | null;
+}
+
+/**
+ * A focus-session caption parsed as `<Project> - <Title> - <tag, tag>` (spaces
+ * around `-` optional). One section is a bare title, two are project + title,
+ * three add comma-separated tags; four or more keep the middle sections as the
+ * title. Parsing lives in Rust (`eye-core::label`); this is the result shape.
+ */
+export interface SessionLabel {
+  raw: string;
+  project: string | null;
+  title: string;
+  tags: string[];
 }
 
 /** Emitted once on `timer:warning`, `warning_secs` before a phase change. */
@@ -88,6 +103,22 @@ export interface DayStats {
   breaks_skipped: number;
 }
 
+/** Focus time per project over the 7-day window; `project` null = unlabelled. */
+export interface ProjectStats {
+  project: string | null;
+  focus_secs: number;
+  sessions: number;
+}
+
+/** One past focus session, for the statistics list. */
+export interface SessionView {
+  /** RFC 3339, when the session ended. */
+  ts: string;
+  label: SessionLabel | null;
+  actual_secs: number;
+  completed: boolean;
+}
+
 export interface Stats {
   today: DayStats;
   /** Oldest first, exactly 7 entries ending with today. */
@@ -95,6 +126,10 @@ export interface Stats {
   /** Consecutive days (ending today or yesterday) with at least one completed work session. */
   streak_days: number;
   all_time_focus_secs: number;
+  /** Sorted by focus_secs descending. */
+  by_project_7d: ProjectStats[];
+  /** Newest first, at most 30 work sessions. */
+  recent: SessionView[];
 }
 
 /** Tauri command names, kept in one place so a typo is a compile error in `api.ts`. */
@@ -106,6 +141,7 @@ export const COMMANDS = {
   skip: "skip",
   extendBreak: "extend_break", // { secs: number }
   setPreset: "set_preset", // { preset: PresetId }
+  setLabel: "set_label", // { label: string | null } caption for the current/next focus session
   getSettings: "get_settings",
   saveSettings: "save_settings", // { settings: Settings }
   resetHudPosition: "reset_hud_position",

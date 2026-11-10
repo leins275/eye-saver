@@ -30,6 +30,7 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   gap: calc(8px * var(--hud-scale));
   height: calc(40px * var(--hud-scale));
   padding: 0 calc(14px * var(--hud-scale)) 0 calc(12px * var(--hud-scale));
@@ -56,6 +57,7 @@ body {
 }
 
 .hud-clock {
+  flex: none;
   font-size: calc(20px * var(--hud-scale));
   font-weight: 500;
   line-height: 1;
@@ -79,6 +81,22 @@ body {
   color: var(--muted);
   font-weight: 600;
   line-height: 1;
+  /* Shrinks before anything else, so a long caption can never widen the pill. */
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The session caption in the phase slot: natural case, ~14 characters at 1x. */
+.hud-caption {
+  max-width: calc(84px * var(--hud-scale));
+  font-size: calc(11px * var(--hud-scale));
+  letter-spacing: 0.01em;
+  text-transform: none;
+  font-weight: 500;
+  color: var(--fg);
 }
 
 .hud-hint {

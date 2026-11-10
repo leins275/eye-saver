@@ -1,4 +1,5 @@
 import { useId, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import type { SessionLabel } from "../shared/types";
 import { comboFromKeyboardEvent, isValidCombo } from "./hotkey";
 
 /** A settings row: label + hint on the left, the control on the right. */
@@ -145,6 +146,21 @@ export function HotkeyField({
       />
       {!valid && <span className="hotkey-error hint">Needs a key besides modifiers.</span>}
       {valid && conflict && <span className="hotkey-error hint">Same as the other shortcut.</span>}
+    </span>
+  );
+}
+
+/** A parsed session caption as chips: project (accent), title, tags (muted). */
+export function LabelChips({ label }: { label: SessionLabel }) {
+  return (
+    <span className="label-chips">
+      {label.project && <span className="chip chip-accent">{label.project}</span>}
+      {label.title && <span className="label-title">{label.title}</span>}
+      {label.tags.map((tag) => (
+        <span key={tag} className="chip chip-muted">
+          {tag}
+        </span>
+      ))}
     </span>
   );
 }

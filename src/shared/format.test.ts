@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatMinutes, presetLabel, presetMinutes } from "./format";
+import {
+  formatClock,
+  formatMinutes,
+  formatSessionTime,
+  presetLabel,
+  presetMinutes,
+} from "./format";
 
 describe("formatClock", () => {
   it("pads minutes and seconds", () => {
@@ -48,5 +54,31 @@ describe("presets", () => {
     const s = { custom_work_min: 50, custom_break_min: 10 };
     expect(presetMinutes("pomodoro", s)).toEqual({ work_min: 25, break_min: 5 });
     expect(presetMinutes("custom", s)).toEqual({ work_min: 50, break_min: 10 });
+  });
+});
+
+describe("formatSessionTime", () => {
+  // Local-time constructor, so the expectations hold in any zone.
+  const now = new Date(2026, 10, 10, 15, 0); // Tue 10 Nov 2026, 15:00
+
+  it("says Today with the time for the current day", () => {
+    expect(formatSessionTime(new Date(2026, 10, 10, 14, 32).toISOString(), now)).toBe(
+      "Today 14:32",
+    );
+    expect(formatSessionTime(new Date(2026, 10, 10, 0, 5).toISOString(), now)).toBe("Today 00:05");
+  });
+
+  it("uses the weekday within the last week", () => {
+    expect(formatSessionTime(new Date(2026, 10, 9, 9, 10).toISOString(), now)).toBe("Mon 09:10");
+    expect(formatSessionTime(new Date(2026, 10, 4, 23, 59).toISOString(), now)).toBe("Wed 23:59");
+  });
+
+  it("falls back to month and day beyond a week", () => {
+    expect(formatSessionTime(new Date(2026, 10, 3, 12, 0).toISOString(), now)).toBe("Nov 3");
+    expect(formatSessionTime(new Date(2026, 0, 1, 12, 0).toISOString(), now)).toBe("Jan 1");
+  });
+
+  it("returns an empty string for garbage", () => {
+    expect(formatSessionTime("not a date", now)).toBe("");
   });
 });

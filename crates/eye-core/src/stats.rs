@@ -1,6 +1,7 @@
 //! Session statistics: append-only JSONL on disk plus on-demand aggregation.
 
-use std::collections::HashSet;
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, HashSet};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -9,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use time::format_description::well_known::Rfc3339;
 use time::{Date, Duration, OffsetDateTime};
 
+use crate::label::SessionLabel;
 use crate::timer::{Phase, SessionRecord};
 use crate::CoreError;
 
@@ -35,6 +37,28 @@ impl DayStats {
     }
 }
 
+/// Mirrors the TypeScript `ProjectStats`: focus time per project over the
+/// 7-day window; `project: None` = unlabelled sessions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectStats {
+    pub project: Option<String>,
+    pub focus_secs: u64,
+    /// Completed work sessions.
+    pub sessions: u64,
+}
+
+/// Mirrors the TypeScript `SessionView`: one past work session.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SessionView {
+    pub ts: String,
+    pub label: Option<SessionLabel>,
+    pub actual_secs: u64,
+    pub completed: bool,
+}
+
+/// At most this many entries in `Stats::recent`.
+pub const RECENT_LIMIT: usize = 30;
+
 /// Mirrors the TypeScript `Stats`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Stats {
@@ -43,6 +67,10 @@ pub struct Stats {
     pub last_7_days: Vec<DayStats>,
     pub streak_days: u64,
     pub all_time_focus_secs: u64,
+    /// Sorted by `focus_secs` descending, ties by project name.
+    pub by_project_7d: Vec<ProjectStats>,
+    /// Work sessions only, newest first, at most [`RECENT_LIMIT`].
+    pub recent: Vec<SessionView>,
 }
 
 /// Appends one record as a JSON line, creating the file and its directory.
@@ -100,6 +128,8 @@ pub fn aggregate(records: &[SessionRecord], today: Date) -> Stats {
 
     let mut all_time_focus_secs = 0;
     let mut work_days: HashSet<Date> = HashSet::new();
+    // project -> (focus_secs, completed sessions)
+    let mut projects: BTreeMap<Option<String>, (u64, u64)> = BTreeMap::new();
 
     for r in records {
         if r.kind == Phase::Work {
@@ -119,8 +149,13 @@ pub fn aggregate(records: &[SessionRecord], today: Date) -> Stats {
         match (r.kind, r.completed) {
             (Phase::Work, completed) => {
                 day.focus_secs += r.actual_secs;
+                let project = projects
+                    .entry(r.label.as_ref().and_then(|l| l.project.clone()))
+                    .or_default();
+                project.0 += r.actual_secs;
                 if completed {
                     day.work_sessions += 1;
+                    project.1 += 1;
                 }
             }
             (Phase::Break, true) => day.breaks_completed += 1,
@@ -143,11 +178,47 @@ pub fn aggregate(records: &[SessionRecord], today: Date) -> Stats {
         cursor = d.checked_sub(Duration::days(1));
     }
 
+    let mut by_project_7d: Vec<ProjectStats> = projects
+        .into_iter()
+        .map(|(project, (focus_secs, sessions))| ProjectStats {
+            project,
+            focus_secs,
+            sessions,
+        })
+        .collect();
+    // Most focus first; ties by project name, with the unlabelled bucket last.
+    by_project_7d.sort_by(|a, b| {
+        b.focus_secs
+            .cmp(&a.focus_secs)
+            .then_with(|| match (&a.project, &b.project) {
+                (Some(a), Some(b)) => a.cmp(b),
+                (Some(_), None) => Ordering::Less,
+                (None, Some(_)) => Ordering::Greater,
+                (None, None) => Ordering::Equal,
+            })
+    });
+
+    // The file is append-only, so reverse order is newest first.
+    let recent = records
+        .iter()
+        .rev()
+        .filter(|r| r.kind == Phase::Work)
+        .take(RECENT_LIMIT)
+        .map(|r| SessionView {
+            ts: r.ts.clone(),
+            label: r.label.clone(),
+            actual_secs: r.actual_secs,
+            completed: r.completed,
+        })
+        .collect();
+
     Stats {
         today: days[6].clone(),
         last_7_days: days,
         streak_days,
         all_time_focus_secs,
+        by_project_7d,
+        recent,
     }
 }
 
@@ -163,6 +234,14 @@ mod tests {
             planned_secs: 1500,
             actual_secs: actual,
             completed,
+            label: None,
+        }
+    }
+
+    fn labelled(ts: &str, caption: &str, actual: u64, completed: bool) -> SessionRecord {
+        SessionRecord {
+            label: crate::label::parse(caption),
+            ..rec(ts, Phase::Work, actual, completed)
         }
     }
 
@@ -194,9 +273,24 @@ mod tests {
                 "kind": "break",
                 "planned_secs": 1500,
                 "actual_secs": 300,
-                "completed": true
+                "completed": true,
+                "label": null
             })
         );
+    }
+
+    #[test]
+    fn old_lines_without_label_still_load() {
+        let line = r#"{"ts":"2026-11-10T10:00:00Z","kind":"work","planned_secs":1500,"actual_secs":1500,"completed":true}"#;
+        let r: SessionRecord = serde_json::from_str(line).unwrap();
+        assert_eq!(r, rec("2026-11-10T10:00:00Z", Phase::Work, 1500, true));
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("sessions.jsonl");
+        let l = labelled("2026-11-10T10:30:00Z", "CORE-x-a,b", 1500, true);
+        append(&path, &r).unwrap();
+        append(&path, &l).unwrap();
+        assert_eq!(load(&path), vec![r, l]);
     }
 
     #[test]
@@ -209,6 +303,69 @@ mod tests {
         assert_eq!(s.last_7_days[6].date, "2026-11-10");
         assert_eq!(s.streak_days, 0);
         assert_eq!(s.all_time_focus_secs, 0);
+        assert!(s.by_project_7d.is_empty());
+        assert!(s.recent.is_empty());
+    }
+
+    #[test]
+    fn by_project_groups_the_window_sorted_by_focus_then_name() {
+        let today = date!(2026 - 11 - 10);
+        let records = vec![
+            labelled("2026-11-10T09:00:00Z", "CORE-review-pr", 1500, true),
+            labelled("2026-11-09T09:00:00Z", "TBOT-testing", 1000, true),
+            labelled("2026-11-08T09:00:00Z", "CORE-sync", 400, false),
+            // Unlabelled and bare-title sessions both count as no project.
+            rec("2026-11-07T09:00:00Z", Phase::Work, 1000, true),
+            labelled("2026-11-06T09:00:00Z", "just a title", 900, true),
+            // Same focus as TBOT: tie broken by name.
+            labelled("2026-11-05T09:00:00Z", "ALPHA-x", 1000, true),
+            // Breaks and out-of-window sessions are ignored.
+            rec("2026-11-10T09:30:00Z", Phase::Break, 300, true),
+            labelled("2026-11-03T09:00:00Z", "OLD-x", 5000, true),
+        ];
+        let s = aggregate(&records, today);
+        let view: Vec<(Option<&str>, u64, u64)> = s
+            .by_project_7d
+            .iter()
+            .map(|p| (p.project.as_deref(), p.focus_secs, p.sessions))
+            .collect();
+        assert_eq!(
+            view,
+            vec![
+                (Some("CORE"), 1900, 1),
+                (None, 1900, 2),
+                (Some("ALPHA"), 1000, 1),
+                (Some("TBOT"), 1000, 1),
+            ]
+        );
+    }
+
+    #[test]
+    fn recent_lists_work_sessions_newest_first_capped() {
+        let today = date!(2026 - 11 - 10);
+        let mut records = vec![rec("2026-11-10T08:00:00Z", Phase::Break, 300, true)];
+        for i in 0..40u64 {
+            records.push(labelled(
+                &format!("2026-11-10T09:{:02}:00Z", i),
+                &format!("P-session {i}"),
+                100 + i,
+                i % 2 == 0,
+            ));
+            records.push(rec("2026-11-10T09:00:30Z", Phase::Break, 60, false));
+        }
+        let s = aggregate(&records, today);
+        assert_eq!(s.recent.len(), RECENT_LIMIT);
+        let first = &s.recent[0];
+        assert_eq!(first.ts, "2026-11-10T09:39:00Z");
+        assert_eq!(first.actual_secs, 139);
+        assert!(!first.completed);
+        assert_eq!(first.label.as_ref().unwrap().title, "session 39");
+        assert_eq!(s.recent[29].ts, "2026-11-10T09:10:00Z");
+
+        // Unlabelled sessions appear with a null label.
+        let s = aggregate(&[rec("2026-11-10T09:00:00Z", Phase::Work, 10, true)], today);
+        assert_eq!(s.recent.len(), 1);
+        assert_eq!(s.recent[0].label, None);
     }
 
     #[test]
@@ -293,5 +450,26 @@ mod tests {
         assert_eq!(json["last_7_days"][0]["date"], "2025-12-30");
         assert_eq!(json["streak_days"], 0);
         assert_eq!(json["all_time_focus_secs"], 0);
+        assert_eq!(json["by_project_7d"], serde_json::json!([]));
+        assert_eq!(json["recent"], serde_json::json!([]));
+
+        let s = aggregate(
+            &[labelled("2026-01-05T09:00:00Z", "CORE-x-a", 600, true)],
+            date!(2026 - 01 - 05),
+        );
+        let json = serde_json::to_value(&s).unwrap();
+        assert_eq!(
+            json["by_project_7d"],
+            serde_json::json!([{ "project": "CORE", "focus_secs": 600, "sessions": 1 }])
+        );
+        assert_eq!(
+            json["recent"],
+            serde_json::json!([{
+                "ts": "2026-01-05T09:00:00Z",
+                "label": { "raw": "CORE-x-a", "project": "CORE", "title": "x", "tags": ["a"] },
+                "actual_secs": 600,
+                "completed": true
+            }])
+        );
     }
 }

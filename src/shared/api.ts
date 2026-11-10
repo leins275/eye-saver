@@ -51,6 +51,11 @@ export function setPreset(preset: PresetId): Promise<void> {
   return invoke(COMMANDS.setPreset, { preset });
 }
 
+/** Caption for the current/next focus session; `null` clears it. Resolves to the new state. */
+export function setLabel(label: string | null): Promise<TimerState> {
+  return invoke<TimerState>(COMMANDS.setLabel, { label });
+}
+
 export function getSettings(): Promise<Settings> {
   return invoke<Settings>(COMMANDS.getSettings);
 }

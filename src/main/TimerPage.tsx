@@ -1,8 +1,10 @@
 import { useState, type KeyboardEvent } from "react";
-import { pause, resume, setPreset, skip, start } from "../shared/api";
+import { pause, resume, setLabel, setPreset, skip, start } from "../shared/api";
 import { formatClock, presetLabel, presetMinutes } from "../shared/format";
+import { parseLabel } from "../shared/label";
 import { PRESETS, type PresetId, type TimerState } from "../shared/types";
 import type { useSettings } from "../shared/useSettings";
+import { LabelField } from "./LabelField";
 
 type Store = ReturnType<typeof useSettings>;
 
@@ -64,6 +66,14 @@ export function TimerPage({ timer, store }: { timer: TimerState | null; store: S
       ? 1 - Math.min(1, Math.max(0, timer.remaining_secs / timer.total_secs))
       : 0;
 
+  const label = timer?.label ?? null;
+  const parsedLabel = label === null ? null : parseLabel(label);
+  const labelLine = parsedLabel
+    ? [parsedLabel.project, parsedLabel.title, parsedLabel.tags.join(", ")]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+
   const presetId = settings?.preset ?? timer?.preset ?? "pomodoro";
   const minutes = settings ? presetMinutes(presetId, settings) : PRESETS.pomodoro;
 
@@ -105,6 +115,7 @@ export function TimerPage({ timer, store }: { timer: TimerState | null; store: S
         <div className="timer-clock mono">
           {timer ? formatClock(timer.remaining_secs) : "--:--"}
         </div>
+        {labelLine && <p className="timer-label-line">{labelLine}</p>}
         <div className="progress timer-progress" aria-hidden="true">
           <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
         </div>
@@ -131,6 +142,17 @@ export function TimerPage({ timer, store }: { timer: TimerState | null; store: S
           </button>
         </div>
       </section>
+
+      <LabelField
+        key={label ?? ""}
+        label={label}
+        disabled={timer === null}
+        onCommit={(next) => {
+          setLabel(next).catch(() => {
+            /* the next tick shows what the shell kept */
+          });
+        }}
+      />
 
       <h2 className="section-title">Rhythm</h2>
       <div className="preset-grid" role="radiogroup" aria-label="Preset">
