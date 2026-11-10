@@ -3,6 +3,20 @@
 Every release of Eye Saver, newest first. Generated from conventional
 commits by git-cliff — edit the commit messages, not this file.
 
+## 0.5.0 — 2026-11-10
+
+### Build & CI
+
+- Drop the Linux and macOS Rust jobs
+
+### Documentation
+
+- **landing**: Add a Statistics section and the new move hotkey
+
+### Features
+
+- **settings**: Default the HUD move hotkey to Ctrl+Alt+Z
+
 ## 0.4.0 — 2026-11-10
 
 ### Bug fixes
