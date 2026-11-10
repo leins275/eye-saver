@@ -3,6 +3,12 @@
 Every release of Eye Saver, newest first. Generated from conventional
 commits by git-cliff — edit the commit messages, not this file.
 
+## 0.2.1 — 2026-11-10
+
+### Bug fixes
+
+- Allow only one running instance
+
 ## 0.2.0 — 2026-11-10
 
 ### Bug fixes
