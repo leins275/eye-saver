@@ -38,7 +38,9 @@ on:
 
 # A new push to a PR makes the previous run's answer irrelevant.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # A called run (tag.yml gating a direct push to main) gets its own group:
+  # two pushes to main in a row would otherwise cancel each other's gate.
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
 permissions:

@@ -15,7 +15,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 eye-core = { path = "../crates/eye-core" }
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri = { version = "2", features = ["tray-icon", "image-png", "protocol-asset"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
