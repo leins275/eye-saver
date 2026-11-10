@@ -88,7 +88,7 @@ jobs:
         include:
           - os: windows-latest
             slug: windows-x86_64
-          - os: macos-14 # Apple Silicon (arm64) runner
+          - os: macos-15 # Apple Silicon (arm64) runner
             slug: darwin-aarch64
           - os: ubuntu-22.04
             slug: linux-x86_64

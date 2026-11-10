@@ -64,7 +64,7 @@ Single-package dev loop: `npm run tauri dev`. Python scripts run via
 ## Platform notes
 
 - Windows is the primary platform and the only one exercised by hand. macOS is
-  built on `macos-14` (unsigned, right-click > Open). Linux (AppImage) builds in
+  built on `macos-15` (unsigned, right-click > Open). Linux (AppImage) builds in
   CI and is untested; Wayland delivers no global shortcuts.
 - On Windows, webview windows must only be created from the async timer task
   (the tokio task that ticks the timer), never from a synchronous command or a

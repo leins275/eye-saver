@@ -71,7 +71,7 @@ and stages what the bundler produced under `target/release/bundle/`:
 | Leg                               | Staged                                                                 |
 | --------------------------------- | ---------------------------------------------------------------------- |
 | `windows-latest / windows-x86_64` | `nsis/Eye Saver_<v>_x64-setup.exe` + `.sig`                            |
-| `macos-14 / darwin-aarch64`       | `dmg/Eye Saver_<v>_aarch64.dmg`, `macos/Eye Saver.app.tar.gz` + `.sig` |
+| `macos-15 / darwin-aarch64`       | `dmg/Eye Saver_<v>_aarch64.dmg`, `macos/Eye Saver.app.tar.gz` + `.sig` |
 | `ubuntu-22.04 / linux-x86_64`     | `appimage/Eye Saver_<v>_amd64.AppImage` + `.sig`                       |
 
 Every staged file must be non-empty and every installer larger than 1 MB; a
