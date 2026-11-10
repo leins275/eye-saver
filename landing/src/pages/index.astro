@@ -47,6 +47,7 @@ const description =
         <nav class="topnav" aria-label="Page">
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
+          <a href="#stats">Statistics</a>
           <a href={github}>GitHub</a>
         </nav>
       </header>
@@ -156,7 +157,7 @@ const description =
               <h3>A HUD that stays out of the way</h3>
               <p>
                 Always on top, click-through, remembers its place. Hold
-                <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> to drag it wherever you like.
+                <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Z</kbd> to drag it wherever you like.
               </p>
             </li>
             <li class="feature">
@@ -202,6 +203,55 @@ const description =
               </p>
             </li>
           </ul>
+        </section>
+
+        <section id="stats" class="stats">
+          <h2>See the habit build</h2>
+          <p class="stats-lede">
+            Every finished block and every break lands in a local log. The Statistics page turns
+            it into today's total, your streak, a 7-day chart and focus time per project, read
+            from captions like <code>Core - fix veil - bug</code>. Nothing leaves your machine.
+          </p>
+          <div class="stats-mock" aria-hidden="true">
+            <div class="stats-tiles">
+              <div class="tile">
+                <span class="tile-label">Today</span>
+                <span class="tile-value">2 h 05 m</span>
+                <span class="tile-foot">5 sessions · 4 breaks taken · 1 skipped</span>
+              </div>
+              <div class="tile">
+                <span class="tile-label">Streak</span>
+                <span class="tile-value">12 days</span>
+                <span class="tile-foot">Consecutive days with a finished focus session</span>
+              </div>
+              <div class="tile">
+                <span class="tile-label">All time</span>
+                <span class="tile-value">86 h 40 m</span>
+                <span class="tile-foot">Total focused time</span>
+              </div>
+            </div>
+            <div class="stats-panel">
+              <span class="tile-label">Last 7 days</span>
+              <div class="bars">
+                <div class="bar" style="--h: 55%"><span>Tue</span></div>
+                <div class="bar" style="--h: 80%"><span>Wed</span></div>
+                <div class="bar" style="--h: 30%"><span>Thu</span></div>
+                <div class="bar" style="--h: 95%"><span>Fri</span></div>
+                <div class="bar" style="--h: 15%"><span>Sat</span></div>
+                <div class="bar" style="--h: 0%"><span>Sun</span></div>
+                <div class="bar is-today" style="--h: 62%"><span>Mon</span></div>
+              </div>
+            </div>
+            <div class="stats-panel">
+              <span class="tile-label">By project · 7 days</span>
+              <ul class="projects">
+                <li><span class="project-name">Core</span><i style="--w: 100%"></i><span class="project-time">6 h 15 m</span></li>
+                <li><span class="project-name">Landing</span><i style="--w: 48%"></i><span class="project-time">3 h 00 m</span></li>
+                <li><span class="project-name">Thesis</span><i style="--w: 31%"></i><span class="project-time">1 h 55 m</span></li>
+                <li><span class="project-name muted">Unlabelled</span><i style="--w: 12%"></i><span class="project-time">45 m</span></li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         <section class="closer">
@@ -767,6 +817,144 @@ const description =
     color: var(--muted);
   }
 
+  /* ---- statistics ------------------------------------------------------- */
+  .stats {
+    padding: 72px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .stats h2 {
+    font-weight: 600;
+    font-size: 32px;
+    margin: 0 0 12px;
+  }
+  .stats-lede {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 60ch;
+    margin: 0 0 40px;
+  }
+  .stats-mock {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .stats-tiles {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .tile,
+  .stats-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px 20px;
+    border-radius: var(--r-lg);
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+  }
+  .tile-label {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .tile-value {
+    font-family: var(--font-mono);
+    font-size: 30px;
+    font-weight: 300;
+    line-height: 1.1;
+    color: var(--fg-strong);
+    font-variant-numeric: tabular-nums;
+  }
+  .tile-foot {
+    font-size: 13px;
+    color: var(--muted-2);
+  }
+  .bars {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    align-items: end;
+    height: 150px;
+    margin-top: 10px;
+  }
+  .bar {
+    position: relative;
+    height: 100%;
+    border-radius: 6px;
+    background: var(--bg-3);
+    overflow: hidden;
+  }
+  .bar::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: var(--h);
+    border-radius: 6px;
+    background: rgba(127, 209, 200, 0.55);
+  }
+  .bar.is-today::after {
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .bar span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6px;
+    z-index: 1;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-strong);
+  }
+  .projects {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .projects li {
+    display: grid;
+    grid-template-columns: 9ch 1fr 8ch;
+    white-space: nowrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .project-name {
+    color: var(--fg-strong);
+  }
+  .project-name.muted {
+    color: var(--muted-2);
+  }
+  .projects i {
+    display: block;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--bg-3);
+    position: relative;
+    overflow: hidden;
+  }
+  .projects i::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--w);
+    border-radius: 4px;
+    background: var(--accent);
+  }
+  .project-time {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-align: right;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
   /* ---- closer / footer -------------------------------------------------- */
   .closer {
     padding: 88px 0 72px;
@@ -831,11 +1019,14 @@ const description =
       padding: 0;
       border-right: 0;
     }
-    .feature-grid {
+    .feature-grid,
+    .stats-mock,
+    .stats-tiles {
       grid-template-columns: 1fr;
     }
     .how,
-    .features {
+    .features,
+    .stats {
       padding: 56px 0;
     }
     .closer {
