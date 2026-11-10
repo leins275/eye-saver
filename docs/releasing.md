@@ -9,10 +9,11 @@ How a change gets from a commit to a build someone can download.
 3. If anything since the last tag is bump-worthy, `tag.yml` writes the new
    version everywhere, prepends the new section to `CHANGELOG.md`, commits
    `chore(release): X.Y.Z` to `main` and tags it `vX.Y.Z`.
-4. The tag triggers `release.yml`: the Windows installer (NSIS `.exe`), the
-   macOS Apple Silicon `.dmg` + updater archive and the Linux `.AppImage` are
-   built in parallel, and one GitHub Release is published with all of them and
-   the updater's `latest.json` attached.
+4. The tag triggers `release.yml`: the Windows installer (NSIS `.exe`) is
+   built and one GitHub Release is published with it and the updater's
+   `latest.json` attached. macOS and Linux legs are not built for now; the
+   workflow's `build` matrix comment says how to add them back, and the
+   manifest/verification steps pick up whatever legs staged assets.
 
 There is no release PR and no separate "ship it" step: **merging to `main` is
 the ship decision.** A merge that contains only `docs:`/`chore:`-class commits
@@ -68,17 +69,15 @@ by hand triggers `release.yml` the ordinary way.
 Each `release.yml` leg runs `npm ci` and `npm run tauri -- build -- --locked`
 and stages what the bundler produced under `target/release/bundle/`:
 
-| Leg                               | Staged                                                                 |
-| --------------------------------- | ---------------------------------------------------------------------- |
-| `windows-latest / windows-x86_64` | `nsis/Eye Saver_<v>_x64-setup.exe` + `.sig`                            |
-| `macos-15 / darwin-aarch64`       | `dmg/Eye Saver_<v>_aarch64.dmg`, `macos/Eye Saver.app.tar.gz` + `.sig` |
-| `ubuntu-22.04 / linux-x86_64`     | `appimage/Eye Saver_<v>_amd64.AppImage` + `.sig`                       |
+| Leg                               | Staged                                      |
+| --------------------------------- | ------------------------------------------- |
+| `windows-latest / windows-x86_64` | `nsis/Eye Saver_<v>_x64-setup.exe` + `.sig` |
 
 Every staged file must be non-empty and every installer larger than 1 MB; a
 missing `.sig` means `TAURI_SIGNING_PRIVATE_KEY` was not available to the build.
-The release object is created exactly once, by the `publish` job, only after all
-three legs succeed, and is then read back to confirm the three updater assets and
-the dmg are attached. GitHub replaces spaces in asset names with dots on upload
+The release object is created exactly once, by the `publish` job, only after
+every leg succeeds, and is then read back to confirm each staged bundle is
+attached. GitHub replaces spaces in asset names with dots on upload
 (`Eye.Saver_<v>_x64-setup.exe`); `latest.json` is written with those names.
 
 The tag exists _before_ the build: a failed bundle leaves a `vX.Y.Z` tag with no
@@ -92,11 +91,11 @@ refused).
 The installed app checks `latest.json` at launch and offers the update; nothing
 installs without a click (Windows uses the passive NSIS install mode).
 
-| Piece                     | Where                                                                                                                |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Signing keypair           | private key in the `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD` repo secrets; public key in `src-tauri/tauri.conf.json` |
-| Signed artifacts + `.sig` | `createUpdaterArtifacts`: the `.exe` and `.AppImage` are signed in place; macOS gets `Eye Saver.app.tar.gz` + `.sig` |
-| `latest.json`             | assembled by `release.yml`'s `publish` job with `windows-x86_64`, `darwin-aarch64`, `linux-x86_64`                   |
+| Piece                     | Where                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Signing keypair           | private key in the `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD` repo secrets; public key in `src-tauri/tauri.conf.json`     |
+| Signed artifacts + `.sig` | `createUpdaterArtifacts`: the `.exe` is signed in place (an AppImage would be too; macOS gets an `.app.tar.gz` + `.sig`) |
+| `latest.json`             | assembled by `release.yml`'s `publish` job: `windows-x86_64` always, other platforms only when their leg staged assets   |
 
 The minisign key proves an update came from this pipeline. It is **not** code
 signing: SmartScreen and Gatekeeper still warn on a fresh install. **If the key

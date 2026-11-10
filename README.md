@@ -48,27 +48,13 @@ Run `Eye.Saver_<version>_x64-setup.exe`. It installs per user (no admin
 prompt). The installer is not code-signed, so SmartScreen may warn on first run;
 choose "More info" > "Run anyway".
 
-### macOS (Apple Silicon)
+### macOS and Linux
 
-Open `Eye.Saver_<version>_aarch64.dmg` and drag the app to Applications. The
-app is not notarized, so Gatekeeper blocks a plain double-click the first time.
-Either right-click the app and choose **Open** (twice), or clear the quarantine
-flag once:
-
-```sh
-xattr -d com.apple.quarantine "/Applications/Eye Saver.app"
-```
-
-### Linux (x86_64, best effort)
-
-```sh
-chmod +x Eye.Saver_<version>_amd64.AppImage
-./Eye.Saver_<version>_amd64.AppImage
-```
-
-The Linux build is produced in CI but not routinely tested. Known gaps: on
-Wayland there are no global shortcuts, so the hotkeys do nothing there (the tray
-still works), and transparency of the HUD depends on the compositor.
+Only the Windows installer is published at the moment, to keep releases fast.
+The code builds on macOS (Apple Silicon, unsigned) and Linux (AppImage, best
+effort: no global shortcuts on Wayland, HUD transparency depends on the
+compositor); build from source with `npm run tauri build`. Re-adding a build
+leg to `release.yml` is enough to publish them again.
 
 ## Development
 

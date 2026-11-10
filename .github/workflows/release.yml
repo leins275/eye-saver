@@ -72,13 +72,14 @@ jobs:
             echo "release=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # One leg per platform, in parallel: the Windows NSIS installer, the macOS
-  # (Apple Silicon) dmg + updater archive, and the Linux AppImage. Each leg
-  # runs the same `tauri build` a developer runs locally, stages its assets
-  # under a per-platform artifact name, and uploads them for the fan-in
-  # `publish` job below -- the release object itself is only ever created
-  # once, after *all* legs succeed, so a failed leg leaves no partial
-  # release behind.
+  # One leg per published platform. Only Windows (NSIS installer) ships for
+  # now; the matrix, stage step and manifest assembly below are written so a
+  # macOS (`macos-15` / `darwin-aarch64`: dmg + `.app.tar.gz` updater
+  # archive) or Linux (`ubuntu-22.04` / `linux-x86_64`: AppImage, needs the
+  # apt packages from ci.yml's `rust-linux` job and `NO_STRIP=true`) leg can
+  # be added back by appending it to `include`. Each leg runs the same
+  # `tauri build` a developer runs locally and uploads its assets for the
+  # fan-in `publish` job, which creates the release exactly once.
   build:
     needs: check
     if: needs.check.outputs.release == 'true'
@@ -88,10 +89,6 @@ jobs:
         include:
           - os: windows-latest
             slug: windows-x86_64
-          - os: macos-15 # Apple Silicon (arm64) runner
-            slug: darwin-aarch64
-          - os: ubuntu-22.04
-            slug: linux-x86_64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
 
@@ -303,11 +300,13 @@ jobs:
                   "url": f"{base}/{artifact.name.replace(' ', '.')}",
               }
 
-          platforms = {
-              "windows-x86_64": signed_platform(only("*.exe")),
-              "darwin-aarch64": signed_platform(only("*.app.tar.gz")),
-              "linux-x86_64": signed_platform(only("*.AppImage")),
-          }
+          # A platform is listed only when its leg staged an artifact, so
+          # re-adding a build leg is enough to publish it.
+          platforms = {"windows-x86_64": signed_platform(only("*.exe"))}
+          if list(assets.glob("*.app.tar.gz")):
+              platforms["darwin-aarch64"] = signed_platform(only("*.app.tar.gz"))
+          if list(assets.glob("*.AppImage")):
+              platforms["linux-x86_64"] = signed_platform(only("*.AppImage"))
           notes = pathlib.Path("release-notes.md").read_text(encoding="utf-8").strip()
           pathlib.Path("latest.json").write_text(
               json.dumps(
@@ -346,8 +345,7 @@ jobs:
 
       # `gh release create` can succeed with a partial upload if an asset is
       # rejected after the release object is made. Read the published release
-      # back and confirm the three updater assets and the dmg are actually
-      # attached -- the whole point of the release is those files. GitHub
+      # back and confirm every staged bundle is actually attached -- the whole point of the release is those files. GitHub
       # replaces spaces in asset names with dots on upload, so the names are
       # compared after the same substitution.
       - name: Confirm the bundles are attached to the published release
@@ -358,6 +356,7 @@ jobs:
           set -euo pipefail
           version="${{ needs.check.outputs.version }}"
           failed=0
+          shopt -s nullglob
           for path in assets/*.exe assets/*.dmg assets/*.app.tar.gz assets/*.AppImage; do
             name=$(basename "$path" | tr ' ' '.')
             size=$(gh release view "v$version" \

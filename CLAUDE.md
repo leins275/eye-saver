@@ -64,9 +64,10 @@ Single-package dev loop: `npm run tauri dev`. Python scripts run via
 
 ## Platform notes
 
-- Windows is the primary platform and the only one exercised by hand. macOS is
-  built on `macos-15` (unsigned, right-click > Open). Linux (AppImage) builds in
-  CI and is untested; Wayland delivers no global shortcuts.
+- Windows is the primary platform and the only one released (`release.yml` has a
+  single Windows leg; macOS/Linux legs can be re-added, see the workflow). CI
+  still checks that the workspace compiles on macOS and tests on Linux. Linux
+  is untested by hand; Wayland delivers no global shortcuts.
 - On Windows, webview windows must only be created from the async timer task
   (the tokio task that ticks the timer), never from a synchronous command or a
   tray/menu handler: doing so deadlocks the event loop. Veils are built hidden
