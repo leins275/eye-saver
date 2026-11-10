@@ -41,7 +41,7 @@ pub fn is_enabled(app: &AppHandle) -> bool {
 #[cfg(windows)]
 mod platform {
     use auto_launch::{AutoLaunch, AutoLaunchBuilder, WindowsEnableMode};
-    use tauri::{AppHandle, Manager};
+    use tauri::AppHandle;
 
     const RUN_KEY: &str = r"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
