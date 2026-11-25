@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { hudReady, onMoveMode, onPhase, onWarning } from "../shared/api";
 import { playChime } from "../shared/audio";
 import { formatClock } from "../shared/format";
-import { parseLabel } from "../shared/label";
 import { useSettings } from "../shared/useSettings";
 import { useTimer } from "../shared/useTimer";
 
@@ -88,13 +87,10 @@ export function Hud() {
   const warning = flash || state?.warning === true;
   const paused = state !== null && !state.running;
   // During focus the caption's project code replaces the word "focus"; a
-  // caption without a project shows its title (raw as fallback).
+  // caption without a project shows its title, then its tags.
   const caption =
     state?.label && state.phase === "work" && !paused
-      ? (() => {
-          const parsed = parseLabel(state.label);
-          return parsed?.project || parsed?.title || state.label;
-        })()
+      ? state.label.project || state.label.title || state.label.tags.join(", ")
       : null;
   const phaseLabel =
     state === null ? "" : paused ? "paused" : state.phase === "work" ? "focus" : "break";

@@ -1,86 +1,75 @@
-import { useId, useState, type KeyboardEvent } from "react";
-import { parseLabel } from "../shared/label";
+import { useState, type FocusEvent, type KeyboardEvent } from "react";
+import { draftFrom, labelFromDraft, sameLabel } from "../shared/label";
+import type { SessionLabel } from "../shared/types";
 import { LabelChips } from "./controls";
-
-export const LABEL_PLACEHOLDER = "PROJECT - what you are doing - tag, tag";
+import { LabelFields } from "./LabelFields";
 
 /**
- * Caption of the current/next focus session, committed on Enter or blur.
- * The draft lives here; the parent remounts the field (via `key`) whenever
- * the shell's label changes, so a tick never fights what is being typed.
+ * Caption of the current/next focus session, committed on Enter or when focus
+ * leaves the fields. The draft lives here; the parent remounts the card (via
+ * `key`) whenever the shell's label changes, so a tick never fights typing.
  */
 export function LabelField({
   label,
   disabled,
   onCommit,
 }: {
-  label: string | null;
+  label: SessionLabel | null;
   disabled: boolean;
-  onCommit: (next: string | null) => void;
+  onCommit: (next: SessionLabel | null) => void;
 }) {
-  const id = useId();
-  const [draft, setDraft] = useState(label ?? "");
-  const preview = parseLabel(draft);
+  const [draft, setDraft] = useState(draftFrom(label));
+  const preview = labelFromDraft(draft);
 
   const commit = () => {
-    const next = draft.trim() || null;
-    if (next !== label) onCommit(next);
+    const next = labelFromDraft(draft);
+    if (!sameLabel(next, label)) onCommit(next);
   };
 
   const clear = () => {
-    setDraft("");
+    setDraft(draftFrom(null));
     if (label !== null) onCommit(null);
+  };
+
+  // Moving between the three fields is not a commit; leaving the card is.
+  const onBlur = (e: FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) commit();
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.currentTarget.blur();
     } else if (e.key === "Escape") {
-      setDraft(label ?? "");
+      setDraft(draftFrom(label));
       e.currentTarget.blur();
     }
   };
 
   return (
-    <section className="card label-card">
+    <section className="card label-card" onBlur={onBlur}>
       <div className="label-head">
-        <label className="kicker" htmlFor={id}>
-          Working on
-        </label>
+        <span className="kicker">Working on</span>
         <span className="hint">Tells your sessions apart in Statistics</span>
       </div>
-      <div className="label-field">
-        <input
-          id={id}
-          className="input label-input"
-          type="text"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={LABEL_PLACEHOLDER}
-          value={draft}
-          disabled={disabled}
-          onChange={(e) => setDraft(e.currentTarget.value)}
-          onBlur={commit}
-          onKeyDown={onKeyDown}
-        />
-        {(draft !== "" || label !== null) && (
+      <LabelFields draft={draft} onChange={setDraft} disabled={disabled} onKeyDown={onKeyDown} />
+      <div className="label-foot">
+        <div className="label-preview">
+          {preview ? (
+            <LabelChips label={preview} />
+          ) : (
+            <span className="hint">e.g. CORE · discuss Q3 strategy · sync, strategy</span>
+          )}
+        </div>
+        {(preview !== null || label !== null) && (
           <button
             type="button"
-            className="label-clear"
+            className="btn btn-ghost btn-sm"
             aria-label="Clear caption"
-            title="Clear"
             disabled={disabled}
             onClick={clear}
           >
-            ×
+            Clear
           </button>
-        )}
-      </div>
-      <div className="label-preview">
-        {preview ? (
-          <LabelChips label={preview} />
-        ) : (
-          <span className="hint">e.g. CORE - discuss Q3 strategy - sync, strategy</span>
         )}
       </div>
     </section>

@@ -15,6 +15,7 @@ import {
   EVENTS,
   type MoveModeEvent,
   type PresetId,
+  type SessionLabel,
   type Settings,
   type Stats,
   type TimerState,
@@ -57,7 +58,7 @@ export function setPreset(preset: PresetId): Promise<void> {
 }
 
 /** Caption for the current/next focus session; `null` clears it. Resolves to the new state. */
-export function setLabel(label: string | null): Promise<TimerState> {
+export function setLabel(label: SessionLabel | null): Promise<TimerState> {
   return invoke<TimerState>(COMMANDS.setLabel, { label });
 }
 
@@ -75,6 +76,11 @@ export function resetHudPosition(): Promise<void> {
 
 export function getStats(): Promise<Stats> {
   return invoke<Stats>(COMMANDS.getStats);
+}
+
+/** Relabels the past focus session that ended at `ts`; resolves to fresh stats. */
+export function updateSessionLabel(ts: string, label: SessionLabel | null): Promise<Stats> {
+  return invoke<Stats>(COMMANDS.updateSessionLabel, { ts, label });
 }
 
 /** The HUD page rendered; the shell shows the (until now hidden) window. */

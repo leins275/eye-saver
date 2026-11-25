@@ -1,7 +1,7 @@
 //! IPC commands (names in `src/shared/types.ts` COMMANDS) and the shared
 //! actions behind them, also used by the tray menu.
 
-use eye_core::{Phase, PresetId, Settings, Stats, TimerState};
+use eye_core::{Phase, PresetId, SessionLabel, Settings, Stats, TimerState};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::app_state::{now, AppState};
@@ -183,7 +183,11 @@ pub fn set_preset(
 
 /// Sets the caption for the current/next focus session; `None` or blank clears it.
 #[tauri::command]
-pub fn set_label(app: AppHandle, state: State<'_, AppState>, label: Option<String>) -> TimerState {
+pub fn set_label(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    label: Option<SessionLabel>,
+) -> TimerState {
     let timer_state = {
         let mut timer = state.lock_timer();
         timer.set_label(label);
@@ -228,6 +232,19 @@ pub async fn reset_hud_position(app: AppHandle) -> AppResult<()> {
 pub fn get_stats(state: State<'_, AppState>) -> Stats {
     let records = eye_core::stats::load(&state.paths.stats_path);
     eye_core::stats::aggregate(&records, eye_core::stats::local_today())
+}
+
+/// Relabels the past work session that ended at `ts`; resolves to fresh stats.
+#[tauri::command]
+pub fn update_session_label(
+    state: State<'_, AppState>,
+    ts: String,
+    label: Option<SessionLabel>,
+) -> AppResult<Stats> {
+    if !eye_core::stats::set_label(&state.paths.stats_path, &ts, label)? {
+        return Err(AppError::Msg(format!("no focus session ended at {ts}")));
+    }
+    Ok(get_stats(state))
 }
 
 /// The HUD page rendered: show it unless hidden by settings or on a break.

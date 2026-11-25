@@ -1,58 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { parseLabel } from "./label";
+import { draftFrom, labelFromDraft, labelLine, parseTags, sameLabel } from "./label";
 
-describe("parseLabel", () => {
-  it("splits project and title", () => {
-    expect(parseLabel("TBOT-testing with Artur")).toEqual({
-      raw: "TBOT-testing with Artur",
-      project: "TBOT",
-      title: "testing with Artur",
-      tags: [],
-    });
-  });
-
-  it("splits project, title and comma tags", () => {
-    expect(parseLabel("CORE-discuss Q3 strategy-sync,strategy")).toEqual({
-      raw: "CORE-discuss Q3 strategy-sync,strategy",
-      project: "CORE",
-      title: "discuss Q3 strategy",
-      tags: ["sync", "strategy"],
-    });
-  });
-
-  it("treats a single section as a bare title", () => {
-    expect(parseLabel("just a title")).toEqual({
-      raw: "just a title",
-      project: null,
-      title: "just a title",
-      tags: [],
-    });
-  });
-
-  it("keeps middle sections as the title when there are four or more", () => {
-    expect(parseLabel("A - B - C - D - x,y")).toEqual({
-      raw: "A - B - C - D - x,y",
-      project: "A",
-      title: "B - C - D",
-      tags: ["x", "y"],
-    });
-  });
-
-  it("trims whitespace around sections and tags", () => {
-    expect(parseLabel("  CORE -  review  -  a , b ,  ")).toEqual({
-      raw: "CORE -  review  -  a , b ,",
+describe("labelFromDraft", () => {
+  it("trims the parts and splits comma tags", () => {
+    expect(labelFromDraft({ project: " CORE ", title: " review ", tags: " a , b " })).toEqual({
       project: "CORE",
       title: "review",
       tags: ["a", "b"],
     });
   });
 
-  it("de-duplicates tags case-insensitively, keeping the first spelling", () => {
-    expect(parseLabel("P-t-Sync,sync,SYNC,other")?.tags).toEqual(["Sync", "other"]);
+  it("drops an empty project and empty tags", () => {
+    expect(labelFromDraft({ project: "  ", title: "t", tags: ", ,x," })).toEqual({
+      project: null,
+      title: "t",
+      tags: ["x"],
+    });
   });
 
-  it("returns null for blank input", () => {
-    expect(parseLabel("")).toBeNull();
-    expect(parseLabel("   ")).toBeNull();
+  it("de-duplicates tags case-insensitively, keeping the first spelling", () => {
+    expect(parseTags("Sync,sync,SYNC,other")).toEqual(["Sync", "other"]);
+  });
+
+  it("returns null when every field is blank", () => {
+    expect(labelFromDraft({ project: "", title: "  ", tags: " , " })).toBeNull();
+    expect(labelFromDraft({ project: "P", title: "", tags: "" })).not.toBeNull();
+    expect(labelFromDraft({ project: "", title: "", tags: "x" })).not.toBeNull();
+  });
+
+  it("round-trips through a draft", () => {
+    const label = { project: "CORE", title: "x", tags: ["a", "b"] };
+    expect(labelFromDraft(draftFrom(label))).toEqual(label);
+    expect(draftFrom(null)).toEqual({ project: "", title: "", tags: "" });
+  });
+});
+
+describe("sameLabel / labelLine", () => {
+  it("compares structurally", () => {
+    const a = { project: "P", title: "t", tags: ["x"] };
+    expect(sameLabel(a, { ...a, tags: ["x"] })).toBe(true);
+    expect(sameLabel(a, { ...a, tags: ["y"] })).toBe(false);
+    expect(sameLabel(a, null)).toBe(false);
+    expect(sameLabel(null, null)).toBe(true);
+  });
+
+  it("renders the present parts joined by dots", () => {
+    expect(labelLine({ project: "CORE", title: "discuss Q3 strategy", tags: ["sync", "x"] })).toBe(
+      "CORE · discuss Q3 strategy · sync, x",
+    );
+    expect(labelLine({ project: null, title: "solo", tags: [] })).toBe("solo");
   });
 });

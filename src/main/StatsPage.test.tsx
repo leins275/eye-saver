@@ -1,10 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DayStats, Stats } from "../shared/types";
 import { StatsPage } from "./StatsPage";
 
 vi.mock("../shared/api", () => ({
   getStats: vi.fn(),
+  updateSessionLabel: vi.fn(),
   onPhase: vi.fn(() => Promise.resolve(() => {})),
 }));
 
@@ -38,7 +40,6 @@ const FIXTURE: Stats = {
     {
       ts: new Date().toISOString(),
       label: {
-        raw: "CORE-discuss Q3 strategy-sync,strategy",
         project: "CORE",
         title: "discuss Q3 strategy",
         tags: ["sync", "strategy"],
@@ -49,7 +50,6 @@ const FIXTURE: Stats = {
     {
       ts: new Date(Date.now() - 3 * 86_400_000).toISOString(),
       label: {
-        raw: "TBOT-testing with Artur",
         project: "TBOT",
         title: "testing with Artur",
         tags: [],
@@ -99,6 +99,55 @@ describe("StatsPage", () => {
     expect(screen.getAllByText("CORE")).toHaveLength(2); // project row + session chip
     expect(screen.getByText(/^Today \d\d:\d\d$/)).toBeInTheDocument();
     expect(screen.getAllByText("10m").length).toBeGreaterThan(0);
+  });
+
+  it("edits a session caption in place and shows the returned stats", async () => {
+    vi.mocked(api.getStats).mockResolvedValue(FIXTURE);
+    const relabelled: Stats = {
+      ...FIXTURE,
+      recent: [
+        {
+          ...FIXTURE.recent[2],
+          label: { project: "OPS", title: "triage", tags: ["bug"] },
+        },
+        ...FIXTURE.recent.slice(0, 2),
+      ],
+    };
+    vi.mocked(api.updateSessionLabel).mockResolvedValue(relabelled);
+    render(<StatsPage />);
+
+    const edits = await screen.findAllByRole("button", { name: /^Edit caption/ });
+    expect(edits).toHaveLength(3);
+    await userEvent.click(edits[2]);
+    expect(screen.getByLabelText("Project")).toHaveValue("");
+    await userEvent.type(screen.getByLabelText("Project"), "OPS");
+    await userEvent.type(screen.getByLabelText("Title"), "triage");
+    await userEvent.type(screen.getByLabelText("Tags"), "bug{Enter}");
+
+    expect(api.updateSessionLabel).toHaveBeenCalledWith(FIXTURE.recent[2].ts, {
+      project: "OPS",
+      title: "triage",
+      tags: ["bug"],
+    });
+    await waitFor(() => expect(screen.getByText("triage")).toBeInTheDocument());
+    expect(screen.queryByLabelText("Project")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Unlabelled")).toHaveLength(1); // only the project row now
+  });
+
+  it("Cancel and an unchanged Save close the editor without a call", async () => {
+    vi.mocked(api.getStats).mockResolvedValue(FIXTURE);
+    render(<StatsPage />);
+
+    const edits = await screen.findAllByRole("button", { name: /^Edit caption/ });
+    await userEvent.click(edits[0]);
+    expect(screen.getByLabelText("Title")).toHaveValue("discuss Q3 strategy");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(api.updateSessionLabel).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
+
+    await userEvent.click(edits[0]);
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
   });
 
   it("shows friendly empty states", async () => {

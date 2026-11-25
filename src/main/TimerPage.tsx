@@ -1,7 +1,7 @@
 import { useState, type KeyboardEvent } from "react";
 import { pause, resume, setLabel, setPreset, skip, start, stop } from "../shared/api";
 import { formatClock, presetLabel, presetMinutes } from "../shared/format";
-import { parseLabel } from "../shared/label";
+import { labelLine } from "../shared/label";
 import { PRESETS, type PresetId, type TimerState } from "../shared/types";
 import type { useSettings } from "../shared/useSettings";
 import { Toggle } from "./controls";
@@ -68,12 +68,7 @@ export function TimerPage({ timer, store }: { timer: TimerState | null; store: S
       : 0;
 
   const label = timer?.label ?? null;
-  const parsedLabel = label === null ? null : parseLabel(label);
-  const labelLine = parsedLabel
-    ? [parsedLabel.project, parsedLabel.title, parsedLabel.tags.join(", ")]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
+  const captionLine = label ? labelLine(label) : "";
 
   const presetId = settings?.preset ?? timer?.preset ?? "pomodoro";
   const minutes = settings ? presetMinutes(presetId, settings) : PRESETS.pomodoro;
@@ -116,7 +111,7 @@ export function TimerPage({ timer, store }: { timer: TimerState | null; store: S
         <div className="timer-clock mono">
           {timer ? formatClock(timer.remaining_secs) : "--:--"}
         </div>
-        {labelLine && <p className="timer-label-line">{labelLine}</p>}
+        {captionLine && <p className="timer-label-line">{captionLine}</p>}
         <div className="progress timer-progress" aria-hidden="true">
           <div className="progress-fill" style={{ width: `${progress * 100}%` }} />
         </div>
@@ -172,7 +167,7 @@ export function TimerPage({ timer, store }: { timer: TimerState | null; store: S
       </section>
 
       <LabelField
-        key={label ?? ""}
+        key={label ? labelLine(label) : ""}
         label={label}
         disabled={timer === null}
         onCommit={(next) => {

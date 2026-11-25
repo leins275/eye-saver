@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
-import { getStats, onPhase } from "../shared/api";
+import { useEffect, useState, type KeyboardEvent } from "react";
+import { getStats, onPhase, updateSessionLabel } from "../shared/api";
 import { formatMinutes, formatSessionTime } from "../shared/format";
+import { draftFrom, labelFromDraft, sameLabel } from "../shared/label";
 import type { ProjectStats, SessionView, Stats } from "../shared/types";
 import { CHART, chartBars } from "./chart";
 import { LabelChips } from "./controls";
+import { LabelFields } from "./LabelFields";
 
 function StatCard({ label, value, foot }: { label: string; value: string; foot?: string }) {
   return (
@@ -45,25 +47,107 @@ function ProjectList({ rows }: { rows: ProjectStats[] }) {
   );
 }
 
-function SessionList({ rows }: { rows: SessionView[] }) {
+/** One past focus session; its caption can be edited in place. */
+function SessionRow({ row, onSaved }: { row: SessionView; onSaved: (stats: Stats) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(draftFrom(row.label));
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const open = () => {
+    setDraft(draftFrom(row.label));
+    setFailed(false);
+    setEditing(true);
+  };
+
+  const save = () => {
+    const next = labelFromDraft(draft);
+    if (sameLabel(next, row.label)) {
+      setEditing(false);
+      return;
+    }
+    setBusy(true);
+    updateSessionLabel(row.ts, next)
+      .then((stats) => {
+        setEditing(false);
+        onSaved(stats);
+      })
+      .catch(() => setFailed(true))
+      .finally(() => setBusy(false));
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") save();
+    else if (e.key === "Escape") setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <li className="session-row is-editing">
+        <div className="session-edit">
+          <LabelFields draft={draft} onChange={setDraft} onKeyDown={onKeyDown} autoFocus />
+          <div className="session-edit-foot">
+            <span className="hint">
+              {failed
+                ? "Could not save."
+                : `${formatSessionTime(row.ts)} · ${formatMinutes(row.actual_secs)}`}
+            </span>
+            <span className="session-edit-actions">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setEditing(false)}
+                disabled={busy}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={save}
+                disabled={busy}
+              >
+                Save
+              </button>
+            </span>
+          </div>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <li className="session-row">
+      <span className="session-time hint">{formatSessionTime(row.ts)}</span>
+      <span className="session-body">
+        {row.label ? (
+          <LabelChips label={row.label} />
+        ) : (
+          <span className="label-title muted">Unlabelled</span>
+        )}
+        {!row.completed && <span className="session-skipped">skipped</span>}
+      </span>
+      <span className="session-dur mono">{formatMinutes(row.actual_secs)}</span>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm session-edit-btn"
+        aria-label={`Edit caption of the session at ${formatSessionTime(row.ts)}`}
+        onClick={open}
+      >
+        Edit
+      </button>
+    </li>
+  );
+}
+
+function SessionList({ rows, onSaved }: { rows: SessionView[]; onSaved: (stats: Stats) => void }) {
   if (rows.length === 0) {
     return <p className="hint">Finished focus sessions will show up here, newest first.</p>;
   }
   return (
     <ul className="session-list">
       {rows.map((row) => (
-        <li key={row.ts} className="session-row">
-          <span className="session-time hint">{formatSessionTime(row.ts)}</span>
-          <span className="session-body">
-            {row.label ? (
-              <LabelChips label={row.label} />
-            ) : (
-              <span className="label-title muted">Unlabelled</span>
-            )}
-            {!row.completed && <span className="session-skipped">skipped</span>}
-          </span>
-          <span className="session-dur mono">{formatMinutes(row.actual_secs)}</span>
-        </li>
+        <SessionRow key={row.ts} row={row} onSaved={onSaved} />
       ))}
     </ul>
   );
@@ -200,7 +284,7 @@ export function StatsPage() {
         <div className="chart-head">
           <p className="kicker">Recent sessions</p>
         </div>
-        {stats && <SessionList rows={stats.recent} />}
+        {stats && <SessionList rows={stats.recent} onSaved={setStats} />}
       </section>
     </>
   );

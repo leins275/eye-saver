@@ -85,6 +85,35 @@ pub fn append(path: &Path, record: &SessionRecord) -> Result<(), CoreError> {
     Ok(())
 }
 
+/// Replaces the label of the work record(s) that ended at `ts` and rewrites
+/// the file; lines that do not parse are kept verbatim. Returns whether any
+/// record matched. The label is normalized; a blank one clears it.
+pub fn set_label(path: &Path, ts: &str, label: Option<SessionLabel>) -> Result<bool, CoreError> {
+    let text = fs::read_to_string(path)?;
+    let label = label.and_then(SessionLabel::normalized);
+    let mut matched = false;
+    let mut out = String::with_capacity(text.len());
+    for line in text.lines() {
+        match serde_json::from_str::<SessionRecord>(line) {
+            Ok(mut r) if r.kind == Phase::Work && r.ts == ts => {
+                r.label = label.clone();
+                out.push_str(&serde_json::to_string(&r)?);
+                matched = true;
+            }
+            _ if line.trim().is_empty() => continue,
+            _ => out.push_str(line),
+        }
+        out.push('\n');
+    }
+    if !matched {
+        return Ok(false);
+    }
+    let tmp = path.with_extension("jsonl.tmp");
+    fs::write(&tmp, out)?;
+    fs::rename(&tmp, path)?;
+    Ok(true)
+}
+
 /// Loads every parsable line; a missing file is an empty history.
 pub fn load(path: &Path) -> Vec<SessionRecord> {
     let Ok(text) = fs::read_to_string(path) else {
@@ -238,11 +267,81 @@ mod tests {
         }
     }
 
+    /// `caption` is `PROJECT-title` or `PROJECT-title-tag,tag`; no dash = bare title.
     fn labelled(ts: &str, caption: &str, actual: u64, completed: bool) -> SessionRecord {
+        let parts: Vec<&str> = caption.split('-').collect();
+        let label = match parts.as_slice() {
+            [title] => SessionLabel {
+                project: None,
+                title: title.to_string(),
+                tags: Vec::new(),
+            },
+            [project, title, tags @ ..] => SessionLabel {
+                project: Some(project.to_string()),
+                title: title.to_string(),
+                tags: tags
+                    .iter()
+                    .flat_map(|t| t.split(','))
+                    .map(str::to_string)
+                    .collect(),
+            },
+            [] => unreachable!(),
+        };
         SessionRecord {
-            label: crate::label::parse(caption),
+            label: Some(label),
             ..rec(ts, Phase::Work, actual, completed)
         }
+    }
+
+    #[test]
+    fn set_label_rewrites_matching_work_records_and_keeps_the_rest() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("sessions.jsonl");
+        let a = labelled("2026-11-10T10:00:00Z", "CORE-old", 1500, true);
+        let b = rec("2026-11-10T10:00:00Z", Phase::Break, 300, true);
+        let c = rec("2026-11-10T11:00:00Z", Phase::Work, 1500, true);
+        append(&path, &a).unwrap();
+        append(&path, &b).unwrap();
+        fs::write(
+            &path,
+            format!("{}garbage line\n", fs::read_to_string(&path).unwrap()),
+        )
+        .unwrap();
+        append(&path, &c).unwrap();
+
+        let new = SessionLabel {
+            project: Some(" TBOT ".to_string()),
+            title: "new".to_string(),
+            tags: vec!["x".to_string(), "X".to_string()],
+        };
+        assert!(set_label(&path, "2026-11-10T10:00:00Z", Some(new)).unwrap());
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("garbage line\n"));
+        let records = load(&path);
+        assert_eq!(records.len(), 3);
+        let l = records[0].label.as_ref().unwrap();
+        assert_eq!(l.project.as_deref(), Some("TBOT"));
+        assert_eq!(l.title, "new");
+        assert_eq!(l.tags, vec!["x"]);
+        assert_eq!(records[1], b); // the break at the same second is untouched
+        assert_eq!(records[2], c);
+
+        // A label for an unlabelled record, then clearing it again.
+        assert!(set_label(
+            &path,
+            "2026-11-10T11:00:00Z",
+            Some(labelled("x", "P-t", 0, true).label.unwrap())
+        )
+        .unwrap());
+        assert_eq!(load(&path)[2].label.as_ref().unwrap().title, "t");
+        assert!(set_label(&path, "2026-11-10T11:00:00Z", None).unwrap());
+        assert_eq!(load(&path)[2], c);
+
+        // No match leaves the file alone.
+        let before = fs::read_to_string(&path).unwrap();
+        assert!(!set_label(&path, "2026-11-10T12:00:00Z", None).unwrap());
+        assert_eq!(fs::read_to_string(&path).unwrap(), before);
+        assert!(!path.with_extension("jsonl.tmp").exists());
     }
 
     #[test]
@@ -466,7 +565,7 @@ mod tests {
             json["recent"],
             serde_json::json!([{
                 "ts": "2026-01-05T09:00:00Z",
-                "label": { "raw": "CORE-x-a", "project": "CORE", "title": "x", "tags": ["a"] },
+                "label": { "project": "CORE", "title": "x", "tags": ["a"] },
                 "actual_secs": 600,
                 "completed": true
             }])

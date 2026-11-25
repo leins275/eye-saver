@@ -26,18 +26,16 @@ export interface TimerState {
   preset: PresetId;
   /** true during the final `warning_secs` of the phase. */
   warning: boolean;
-  /** Raw caption of the current/next focus session, e.g. "CORE-discuss Q3 strategy-sync,strategy". */
-  label: string | null;
+  /** Caption of the current/next focus session. */
+  label: SessionLabel | null;
 }
 
 /**
- * A focus-session caption parsed as `<Project> - <Title> - <tag, tag>` (spaces
- * around `-` optional). One section is a bare title, two are project + title,
- * three add comma-separated tags; four or more keep the middle sections as the
- * title. Parsing lives in Rust (`eye-core::label`); this is the result shape.
+ * A focus-session caption: project code, title and tags, entered as separate
+ * fields. The shell normalizes it (trims, drops empties, de-duplicates tags
+ * case-insensitively) and turns an all-blank one into `null`.
  */
 export interface SessionLabel {
-  raw: string;
   project: string | null;
   title: string;
   tags: string[];
@@ -146,11 +144,12 @@ export const COMMANDS = {
   stop: "stop", // drop the current phase; wait paused in work with the full duration
   extendBreak: "extend_break", // { secs: number }
   setPreset: "set_preset", // { preset: PresetId }
-  setLabel: "set_label", // { label: string | null } caption for the current/next focus session
+  setLabel: "set_label", // { label: SessionLabel | null } caption for the current/next focus session
   getSettings: "get_settings",
   saveSettings: "save_settings", // { settings: Settings }
   resetHudPosition: "reset_hud_position",
   getStats: "get_stats",
+  updateSessionLabel: "update_session_label", // { ts: string, label: SessionLabel | null } -> Stats
   hudReady: "hud_ready", // the HUD page rendered; the shell shows the window
   veilReady: "veil_ready", // { label: string }
   quit: "quit",

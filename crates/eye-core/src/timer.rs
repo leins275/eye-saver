@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use time::format_description::well_known::Rfc3339;
 use time::{OffsetDateTime, UtcOffset};
 
-use crate::label::{self, SessionLabel};
+use crate::label::SessionLabel;
 
 /// A wall-clock jump larger than this between ticks is treated as sleep/hibernate.
 pub const SLEEP_JUMP_SECS: u64 = 5;
@@ -60,8 +60,8 @@ pub struct TimerState {
     pub total_secs: u64,
     pub preset: PresetId,
     pub warning: bool,
-    /// Raw caption of the current/next focus session.
-    pub label: Option<String>,
+    /// Caption of the current/next focus session.
+    pub label: Option<SessionLabel>,
 }
 
 /// One finished (or skipped) phase; a line in `sessions.jsonl`.
@@ -130,8 +130,8 @@ pub struct Timer {
     remaining: u64,
     warned: bool,
     last_tick: Option<u64>,
-    /// Raw caption; sticky across sessions until changed or cleared.
-    label: Option<String>,
+    /// Caption; sticky across sessions until changed or cleared.
+    label: Option<SessionLabel>,
 }
 
 impl Timer {
@@ -163,16 +163,14 @@ impl Timer {
         self.running
     }
 
-    pub fn label(&self) -> Option<&str> {
-        self.label.as_deref()
+    pub fn label(&self) -> Option<&SessionLabel> {
+        self.label.as_ref()
     }
 
     /// Sets the caption for the current and following work sessions;
-    /// whitespace-only clears it.
-    pub fn set_label(&mut self, label: Option<String>) {
-        self.label = label
-            .map(|l| l.trim().to_string())
-            .filter(|l| !l.is_empty());
+    /// a blank one clears it.
+    pub fn set_label(&mut self, label: Option<SessionLabel>) {
+        self.label = label.and_then(SessionLabel::normalized);
     }
 
     fn remaining_at(&self, now: u64) -> u64 {
@@ -321,7 +319,7 @@ impl Timer {
             actual_secs: self.total_secs.saturating_sub(remaining),
             completed,
             label: match self.phase {
-                Phase::Work => self.label.as_deref().and_then(label::parse),
+                Phase::Work => self.label.clone(),
                 Phase::Break => None,
             },
         }
@@ -700,24 +698,27 @@ mod tests {
             .expect("a PhaseFinished event")
     }
 
+    fn caption(project: Option<&str>, title: &str, tags: &[&str]) -> SessionLabel {
+        SessionLabel {
+            project: project.map(str::to_string),
+            title: title.to_string(),
+            tags: tags.iter().map(|t| t.to_string()).collect(),
+        }
+    }
+
     #[test]
-    fn work_record_carries_parsed_label_break_record_does_not() {
+    fn work_record_carries_label_break_record_does_not() {
         let mut t = Timer::new(cfg(PresetId::Pomodoro));
-        t.set_label(Some("CORE-discuss Q3 strategy-sync,strategy".to_string()));
-        assert_eq!(t.label(), Some("CORE-discuss Q3 strategy-sync,strategy"));
-        assert_eq!(
-            t.state(T0).label.as_deref(),
-            Some("CORE-discuss Q3 strategy-sync,strategy")
-        );
+        let l = caption(Some("CORE"), "discuss Q3 strategy", &["sync", "strategy"]);
+        t.set_label(Some(l.clone()));
+        assert_eq!(t.label(), Some(&l));
+        assert_eq!(t.state(T0).label.as_ref(), Some(&l));
         t.start(T0);
         ticks(&mut t, T0 + 1, T0 + 1499);
 
         let work = finished(&t.tick(T0 + 1500)).clone();
         assert_eq!(work.kind, Phase::Work);
-        let label = work.label.expect("work record is labelled");
-        assert_eq!(label.project.as_deref(), Some("CORE"));
-        assert_eq!(label.title, "discuss Q3 strategy");
-        assert_eq!(label.tags, vec!["sync", "strategy"]);
+        assert_eq!(work.label, Some(l));
 
         let brk = finished(&t.skip(T0 + 1510)).clone();
         assert_eq!(brk.kind, Phase::Break);
@@ -727,29 +728,30 @@ mod tests {
     #[test]
     fn label_is_sticky_across_phases_and_sessions() {
         let mut t = Timer::new(cfg(PresetId::Pomodoro));
-        t.set_label(Some("TBOT-testing".to_string()));
+        let l = caption(Some("TBOT"), "testing", &[]);
+        t.set_label(Some(l.clone()));
         t.start(T0);
         t.skip(T0 + 10); // work -> break
-        assert_eq!(t.state(T0 + 10).label.as_deref(), Some("TBOT-testing"));
+        assert_eq!(t.state(T0 + 10).label.as_ref(), Some(&l));
         t.skip(T0 + 20); // break -> work
-        assert_eq!(t.label(), Some("TBOT-testing"));
+        assert_eq!(t.label(), Some(&l));
         let second = finished(&t.skip(T0 + 30)).clone();
         assert_eq!(second.kind, Phase::Work);
-        assert_eq!(second.label.unwrap().raw, "TBOT-testing");
+        assert_eq!(second.label, Some(l.clone()));
 
         // Changing config does not touch it either.
         t.set_config(cfg(PresetId::Deep), T0 + 30);
-        assert_eq!(t.label(), Some("TBOT-testing"));
+        assert_eq!(t.label(), Some(&l));
     }
 
     #[test]
     fn set_label_normalizes_and_clears() {
         let mut t = Timer::new(cfg(PresetId::Pomodoro));
-        t.set_label(Some("  just a title  ".to_string()));
-        assert_eq!(t.label(), Some("just a title"));
-        t.set_label(Some("  ".to_string()));
+        t.set_label(Some(caption(Some(" "), "  just a title  ", &[" a ", "a"])));
+        assert_eq!(t.label(), Some(&caption(None, "just a title", &["a"])));
+        t.set_label(Some(caption(None, "  ", &[])));
         assert_eq!(t.label(), None);
-        t.set_label(Some("x".to_string()));
+        t.set_label(Some(caption(None, "x", &[])));
         t.set_label(None);
         assert_eq!(t.label(), None);
         assert_eq!(t.state(T0).label, None);

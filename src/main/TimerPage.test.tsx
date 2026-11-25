@@ -41,53 +41,69 @@ function arrange(timer: Partial<TimerState> = {}) {
   return { commit: store.commit };
 }
 
+const CAPTION = { project: "CORE", title: "discuss Q3 strategy", tags: ["sync", "strategy"] };
+
 describe("TimerPage caption", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("commits a typed caption on Enter and previews it as chips", async () => {
+  it("commits the three fields on Enter and previews them as chips", async () => {
     arrange();
-    const input = screen.getByLabelText("Working on");
-    await userEvent.type(input, "CORE-discuss Q3 strategy-sync,strategy");
+    await userEvent.type(screen.getByLabelText("Project"), "CORE");
+    await userEvent.type(screen.getByLabelText("Title"), "discuss Q3 strategy");
+    await userEvent.type(screen.getByLabelText("Tags"), "sync, strategy, Sync");
 
     expect(screen.getByText("CORE")).toBeInTheDocument();
     expect(screen.getByText("discuss Q3 strategy")).toBeInTheDocument();
     expect(screen.getByText("sync")).toBeInTheDocument();
     expect(screen.getByText("strategy")).toBeInTheDocument();
-    expect(api.setLabel).not.toHaveBeenCalled();
 
     await userEvent.keyboard("{Enter}");
     expect(api.setLabel).toHaveBeenCalledTimes(1);
-    expect(api.setLabel).toHaveBeenCalledWith("CORE-discuss Q3 strategy-sync,strategy");
+    expect(api.setLabel).toHaveBeenCalledWith(CAPTION);
   });
 
-  it("commits on blur and skips the call when nothing changed", async () => {
-    arrange({ label: "just a title" });
-    const input = screen.getByLabelText("Working on");
-    expect(input).toHaveValue("just a title");
-    await userEvent.click(input);
+  it("moving between the fields does not commit; leaving them does", async () => {
+    arrange();
+    await userEvent.type(screen.getByLabelText("Project"), "CORE");
+    await userEvent.tab(); // -> title
+    await userEvent.tab(); // -> tags
+    await userEvent.tab(); // -> the Clear button, still inside the card
+    expect(api.setLabel).not.toHaveBeenCalled();
+    await userEvent.tab(); // out of the card
+    expect(api.setLabel).toHaveBeenCalledWith({ project: "CORE", title: "", tags: [] });
+  });
+
+  it("shows the current caption in the fields and skips the call when nothing changed", async () => {
+    arrange({ label: CAPTION });
+    expect(screen.getByLabelText("Project")).toHaveValue("CORE");
+    expect(screen.getByLabelText("Title")).toHaveValue("discuss Q3 strategy");
+    expect(screen.getByLabelText("Tags")).toHaveValue("sync, strategy");
+    await userEvent.click(screen.getByLabelText("Title"));
+    await userEvent.tab();
+    await userEvent.tab();
     await userEvent.tab();
     expect(api.setLabel).not.toHaveBeenCalled();
   });
 
   it("the clear button sends null", async () => {
-    arrange({ label: "CORE-discuss Q3 strategy-sync,strategy" });
+    arrange({ label: CAPTION });
     await userEvent.click(screen.getByRole("button", { name: "Clear caption" }));
     expect(api.setLabel).toHaveBeenCalledWith(null);
-    expect(screen.getByLabelText("Working on")).toHaveValue("");
+    expect(screen.getByLabelText("Title")).toHaveValue("");
+    expect(screen.getByLabelText("Project")).toHaveValue("");
   });
 
-  it("emptying the field and pressing Enter sends null", async () => {
-    arrange({ label: "just a title" });
-    const input = screen.getByLabelText("Working on");
-    await userEvent.clear(input);
+  it("emptying every field and pressing Enter sends null", async () => {
+    arrange({ label: { project: null, title: "just a title", tags: [] } });
+    await userEvent.clear(screen.getByLabelText("Title"));
     await userEvent.keyboard("{Enter}");
     expect(api.setLabel).toHaveBeenCalledWith(null);
   });
 
   it("shows the current caption as a line in the hero", () => {
-    arrange({ label: "CORE-discuss Q3 strategy-sync,strategy" });
+    arrange({ label: CAPTION });
     expect(screen.getByText("CORE · discuss Q3 strategy · sync, strategy")).toBeInTheDocument();
   });
 });

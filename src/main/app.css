@@ -304,57 +304,44 @@
   gap: 16px;
 }
 
-.label-field {
-  position: relative;
-  display: flex;
+.label-grid {
+  display: grid;
+  grid-template-columns: minmax(96px, 150px) minmax(0, 1fr);
+  gap: 8px;
 }
 
 .label-input {
-  width: 100%;
   height: 38px;
-  padding-right: 38px;
 }
 
 .label-input::placeholder {
   color: var(--muted-2);
 }
 
-.label-clear {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  width: 26px;
-  height: 26px;
-  transform: translateY(-50%);
-  display: inline-flex;
+.label-project {
+  text-transform: uppercase;
+}
+
+.label-project::placeholder {
+  text-transform: none;
+}
+
+.label-tags {
+  grid-column: 1 / -1;
+}
+
+.label-foot {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--muted);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background var(--dur) var(--ease),
-    color var(--dur) var(--ease);
-}
-
-.label-clear:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--fg-strong);
-}
-
-.label-clear:disabled {
-  opacity: 0.4;
-  cursor: default;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .label-preview {
   display: flex;
   align-items: center;
   min-height: 20px;
+  min-width: 0;
 }
 
 .preset-grid {
@@ -568,11 +555,48 @@
 
 .session-row {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) 56px;
+  grid-template-columns: 92px minmax(0, 1fr) 56px auto;
   align-items: center;
   gap: 14px;
   padding: 7px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.session-row.is-editing {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 10px 0;
+}
+
+.session-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-edit .label-input {
+  height: 32px;
+}
+
+.session-edit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.session-edit-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.session-edit-btn {
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.session-row:hover .session-edit-btn,
+.session-edit-btn:focus-visible {
+  opacity: 1;
 }
 
 .session-time {

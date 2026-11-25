@@ -49,6 +49,7 @@ pub fn run() {
             commands::save_settings,
             commands::reset_hud_position,
             commands::get_stats,
+            commands::update_session_label,
             commands::hud_ready,
             commands::veil_ready,
             commands::quit,
