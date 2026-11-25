@@ -3,6 +3,16 @@
 Every release of Eye Saver, newest first. Generated from conventional
 commits by git-cliff — edit the commit messages, not this file.
 
+## 0.7.0 — 2026-11-25
+
+### Features
+
+- **stats**: Structured captions with editable past sessions
+
+### Tests
+
+- **veil**: Wait for the Escape listener before firing the key
+
 ## 0.6.0 — 2026-11-10
 
 ### Features
