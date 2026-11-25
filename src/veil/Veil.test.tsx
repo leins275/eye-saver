@@ -57,8 +57,11 @@ describe("Veil", () => {
   it("Escape skips when allowed", async () => {
     arrange({ allow_skip_break: true });
     await screen.findByRole("button", { name: /skip break/i });
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(api.skip).toHaveBeenCalledTimes(1);
+    // The keydown listener is attached in an effect after paint, so retry.
+    await waitFor(() => {
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(api.skip).toHaveBeenCalled();
+    });
   });
 
   it("hides Skip and ignores Escape when skipping is disabled", async () => {
